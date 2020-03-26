@@ -8,6 +8,6 @@ setup(
     packages=find_packages(exclude=("*test*",)),
     entry_points={'console_scripts': []},
     package_dir={"": "lib"},
-    install_requires=[],
+    install_requires=['decorator', 'PyQt5'],
     extras_require={},
 )
