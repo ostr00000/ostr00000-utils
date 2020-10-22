@@ -58,3 +58,12 @@ def timeDec(fun, logger=_moduleLogger, *args, **kwargs):
         return fun(*args, **kwargs)
     finally:
         logger.debug(f"{fun.__name__}, execute time:{time.time() - start :.4f}s")
+
+
+@_extractLogger
+@decorator
+def saveRun(fun, logger=_moduleLogger, *args, **kwargs):
+    try:
+        return fun(*args, **kwargs)
+    except Exception as exc:
+        logger.error(f'{exc}\n{traceback.format_exc()}')
