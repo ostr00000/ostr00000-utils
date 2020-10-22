@@ -5,7 +5,7 @@ from PyQt5.QtCore import QObject
 from pyqt_utils.python.common_decorators import exceptionDec, actionDec
 
 
-class SlotDecorator(type(QObject), type):
+class SlotDecoratorMeta(type(QObject), type):
     def __new__(mcs, name, bases, namespace):
         for funName, fun in namespace.items():
             if isinstance(fun, types.FunctionType):
