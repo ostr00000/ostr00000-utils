@@ -62,7 +62,7 @@ def timeDec(fun, logger=_moduleLogger, *args, **kwargs):
 
 @_extractLogger
 @decorator
-def saveRun(fun, logger=_moduleLogger, *args, **kwargs):
+def safeRun(fun, logger=_moduleLogger, *args, **kwargs):
     try:
         return fun(*args, **kwargs)
     except Exception as exc:
