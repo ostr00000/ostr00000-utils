@@ -1,6 +1,3 @@
-from PyQt5.QtCore import Qt
-
-
 class BaseWidget:
     """This class call setupUi and retranslateUi method.
      These method are generated from qt ui forms.
@@ -20,33 +17,27 @@ class BaseWidget:
 
     """
 
-    def __init__(self, parent=None, flags=Qt.WindowFlags(), *args, **kwargs):
-        self.__ensure_pre_init_call = False
-        self.__pre_init__(*args, **kwargs)
-        assert self.__ensure_pre_init_call, \
-            'Need to call super in overridden __pre_init__ method'
-
-        super().__init__(parent, flags)
-
-        self.__ensure_pre_setup_call = False
-        self.__pre_setup__(*args, **kwargs)
-        assert self.__ensure_pre_init_call, \
-            'Need to call super in overridden __pre_setup__ method'
-
+    def __init__(self, parent=None, *args, **kwargs):
+        self.__forceSuperCall(self.__pre_init__, *args, **kwargs)
+        super().__init__(parent)
+        self.__forceSuperCall(self.__pre_setup__, *args, **kwargs)
         self.setupUi(self)
         self.retranslateUi(self)
+        self.__forceSuperCall(self.__post_init__, *args, **kwargs)
 
-        self.__ensure_post_init_call = False
-        self.__post_init__(*args, **kwargs)
-        assert self.__ensure_post_init_call, \
-            'Need to call super in overridden __post_init__ method'
+    def __forceSuperCall(self, method, *args, **kwargs):
+        method(*args, **kwargs)
+        assert getattr(self, method.__name__ + 'executed__', False), \
+            f'Need to call super().{method.__name__}(*args, **kwargs)\n' \
+            f'in overridden method: "{method.__name__}" ' \
+            f'in class: "{type(self).__qualname__}"'
 
     def __pre_init__(self, *args, **kwargs):
-        self.__ensure_pre_init_call = True
+        self.__pre_init__executed__ = True
 
     def __pre_setup__(self, *args, **kwargs):
         """Initialize qt objects as attributes, self may be passed as parent."""
-        self.__ensure_pre_setup_call = True
+        self.__pre_setup__executed__ = True
 
     def setupUi(self, uiObj):
         pass
@@ -56,4 +47,4 @@ class BaseWidget:
 
     def __post_init__(self, *args, **kwargs):
         """Connect signals, create advanced objects that use element from ui."""
-        self.__ensure_post_init_call = True
+        self.__post_init__executed__ = True
