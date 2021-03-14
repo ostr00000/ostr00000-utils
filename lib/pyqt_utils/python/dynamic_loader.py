@@ -1,6 +1,7 @@
 import importlib
 import logging
 import pkgutil
+import traceback
 from inspect import isabstract, isclass
 from types import ModuleType
 from typing import Iterator, Type
@@ -13,8 +14,9 @@ def loadClassFromPackage(package: ModuleType) -> Iterator[Type]:
             package.__path__, prefix=package.__name__ + '.'):
         try:
             mod: ModuleType = importlib.import_module(moduleInfo.name)
-        except ImportError as ie:
-            logger.error(str(ie))
+        except Exception as exc:
+            logger.error(str(exc))
+            logger.debug(traceback.format_exc())
         else:
             for name, maybeClass in mod.__dict__.items():
                 if name.startswith('_'):
