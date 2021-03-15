@@ -9,7 +9,18 @@ from typing import Iterator, Type
 logger = logging.getLogger(__name__)
 
 
-def loadClassFromPackage(package: ModuleType) -> Iterator[Type]:
+def loadClassFromPackage(
+        package: ModuleType,
+        requiredSubclass=type,
+        filterPrivate=True,
+) -> Iterator[Type]:
+    """
+    Load all modules from package and subpackages and return classes defined within.
+    :param package: Main package from all classes will be loaded.
+    :param requiredSubclass: Return only classes with this type.
+    :param filterPrivate: Ignore all classes starting with '_' (underscore).
+    :return:
+    """
     for moduleInfo in pkgutil.walk_packages(
             package.__path__, prefix=package.__name__ + '.'):
         try:
@@ -19,10 +30,16 @@ def loadClassFromPackage(package: ModuleType) -> Iterator[Type]:
             logger.debug(traceback.format_exc())
         else:
             for name, maybeClass in mod.__dict__.items():
-                if name.startswith('_'):
+                if filterPrivate and name.startswith('_'):
+                    continue
+                if not isclass(maybeClass):
+                    continue
+                if isabstract(maybeClass):
+                    continue
+                if maybeClass.__module__ != moduleInfo.name:
+                    continue
+                if not issubclass(maybeClass, requiredSubclass):
                     continue
 
-                if isclass(maybeClass) and not isabstract(maybeClass):
-                    if maybeClass.__module__ == moduleInfo.name:
-                        logger.debug(f"Found {maybeClass}")
-                        yield maybeClass
+                logger.debug(f"Found {maybeClass}")
+                yield maybeClass
