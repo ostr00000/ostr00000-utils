@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def loadClassFromPackage(
         package: ModuleType,
-        requiredSubclass=type,
+        requiredSubclass=object,
         filterPrivate=True,
 ) -> Iterator[Type]:
     """
