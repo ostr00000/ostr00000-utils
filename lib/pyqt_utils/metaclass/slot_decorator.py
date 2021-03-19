@@ -3,7 +3,7 @@ import types
 from PyQt5.QtCore import QObject
 
 from pyqt_utils.metaclass.base import BaseMeta
-from pyqt_utils.python.common_decorators import exceptionDec, actionDec
+from pyqt_utils.python.decorators import exceptionDec, actionDec
 
 
 class SlotDecoratorMeta(BaseMeta, type(QObject)):

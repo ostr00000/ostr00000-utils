@@ -1,7 +1,7 @@
 import inspect
 import logging
 
-from pyqt_utils.python.common_decorators import actionDec, timeDec, exceptionDec
+from pyqt_utils.python.decorators import actionDec, timeDec, exceptionDec
 
 logger = logging.getLogger(__name__)
 specialLogger = logging.getLogger(__name__ + '.special')
