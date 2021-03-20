@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QWidget
 
-from pyqt_utils.metaclass.qt_abc import QtAbcMeta
+from pyqt_utils.metaclass.base import QtAbcMeta
 from pyqt_utils.python.decorators import safeRun
 
 logger = logging.getLogger(__name__)

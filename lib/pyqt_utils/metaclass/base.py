@@ -1,4 +1,7 @@
+from abc import ABCMeta
 from typing import Type
+
+from PyQt5.QtCore import QObject
 
 
 class BaseMeta(type):
@@ -12,3 +15,11 @@ class BaseMeta(type):
             pass
 
         return Wrapper
+
+
+class QtMeta(BaseMeta, type(QObject)):
+    pass
+
+
+class QtAbcMeta(ABCMeta, QtMeta):
+    pass
