@@ -1,3 +1,4 @@
+import inspect
 import sys
 from types import FrameType
 
@@ -48,7 +49,7 @@ class BaseWidget:
             f'Need to call super().{method.__name__}(*args, **kwargs)\n'
             f'in overridden method: "{method.__name__}" in class: "'
             f'{(cl := list(codeToClass.values())[len(visitedClasses) - 1]).__module__}'
-            f'.{cl.__qualname__}"'
+            f'.{cl.__qualname__}"\n in file {inspect.getmodule(cl).__file__}:1'
         )
 
     def __pre_init__(self, *args, **kwargs):
