@@ -8,9 +8,9 @@ from typing import Optional, Union, List, Type
 logger = logging.getLogger(__name__)
 
 
-def _PopenWrapper(*args, **kwargs):
+def _PopenWrapper(*args, shell=True, **kwargs):
     logger.info(f"Run command {args}")
-    process = Popen(*args, shell=True, stdout=PIPE, stderr=STDOUT, encoding='UTF-8', **kwargs)
+    process = Popen(*args, shell=shell, stdout=PIPE, stderr=STDOUT, encoding='UTF-8', **kwargs)
     logger.info(shlex.join(process.args) if isinstance(process.args, list) else process.args)
     return process
 
@@ -86,13 +86,13 @@ class PermissionFixReader(OutputReader):
             self.log.info(stdout)
 
 
-def runProcessAsync(cmd: Union[None, str, List[str]],
-                    reader: Optional[Type[OutputReader]] = PermissionFixReader):
+def runProcessAsync(cmd: Union[None, str, List[str]], *args, shell=True,
+                    reader: Optional[Type[OutputReader]] = PermissionFixReader, **kwargs):
     if not cmd:
         return False
 
     try:
-        process = _PopenWrapper(cmd)
+        process = _PopenWrapper(cmd, *args, shell, **kwargs)
     except Exception as e:
         logger.error(str(e))
         return False
