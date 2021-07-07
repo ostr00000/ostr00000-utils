@@ -5,19 +5,21 @@ from inspect import isabstract, isclass
 from types import ModuleType
 from typing import Iterator, Type
 
-logger = logging.getLogger(__name__)
+_moduleLogger = logging.getLogger(__name__)
 
 
 def loadClassFromPackage(
-        package: ModuleType,
-        requiredSubclass=object,
-        filterPrivate=True,
+        package: ModuleType, *,
+        requiredSubclass: type = object,
+        filterPrivate: bool = True,
+        logger: logging.Logger = _moduleLogger,
 ) -> Iterator[Type]:
     """
     Load all modules from package and subpackages and return classes defined within.
     :param package: Main package from all classes will be loaded.
     :param requiredSubclass: Return only classes with this type.
     :param filterPrivate: Ignore all classes starting with '_' (underscore).
+    :param logger: Logger to inform about success or failure.
     :return:
     """
     for moduleInfo in pkgutil.walk_packages(
