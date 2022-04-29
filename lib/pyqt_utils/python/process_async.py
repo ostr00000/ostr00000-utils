@@ -1,49 +1,74 @@
 import logging
 import re
 import shlex
-from subprocess import Popen, STDOUT, PIPE
+from subprocess import Popen, PIPE
 from threading import Thread
-from typing import Optional, Union, List, Type
+from typing import Optional, Union, List, Type, Callable
 
 logger = logging.getLogger(__name__)
 
 
 def _PopenWrapper(*args, shell=True, **kwargs):
     logger.info(f"Run command {args}")
-    process = Popen(*args, shell=shell, stdout=PIPE, stderr=STDOUT, encoding='UTF-8', **kwargs)
+    process = Popen(*args, shell=shell, stdout=PIPE, stderr=PIPE, encoding='UTF-8', **kwargs)
     logger.info(shlex.join(process.args) if isinstance(process.args, list) else process.args)
     return process
 
 
 class OutputReader:
-    def __init__(self, process: Popen):
-        self.log = logging.getLogger(f'{__name__}.{type(self).__name__}.{process.pid}')
-        self.log.setLevel(logging.DEBUG)
-
+    def __init__(self, process: Popen, **kwargs):
         self.originalProcess = process
-        self._startThread(process)
+        self.outputThread = self._startThread(process, target=self._readOutput)
+        self.stderrThread = self._startThread(process, target=self._readError)
 
-    def _startThread(self, process: Popen):
-        th = Thread(target=self._readOutput, name=f"{process.args}", args=(process,))
+    @staticmethod
+    def _startThread(process: Popen, target: Callable[[Popen], None]):
+        th = Thread(target=target, name=f"{process.args}.{target.__name__}", args=(process,))
         th.daemon = True
         th.start()
+        return th
 
     def _readOutput(self, process: Popen):
         for line in process.stdout.readlines():
             line = line.strip()
             if not line:
                 continue
-
-            self.log.debug(line)
             self.processOutput(line)
-
-        self.log.info(f"Proces finished {process.pid}")
 
     def processOutput(self, line: str):
         pass
 
+    def _readError(self, process: Popen):
+        for line in process.stderr.readlines():
+            line = line.strip()
+            if not line:
+                continue
+            self.processError(line)
 
-class PermissionFixReader(OutputReader):
+    def processError(self, line: str):
+        pass
+
+
+class OutputReaderLogger(OutputReader):
+    def __init__(self, process: Popen, logHandlers: list[logging.Handler] = (), **kwargs):
+        super().__init__(process, **kwargs)
+        self.log = logging.getLogger(f'{__name__}.{type(self).__name__}.{process.pid}')
+        self.log.setLevel(logging.DEBUG)
+        for h in logHandlers:
+            self.log.addHandler(h)
+
+    def _readOutput(self, process: Popen):
+        super()._readOutput(process)
+        self.log.info(f"Proces finished {process.pid=} {process.returncode=}")
+
+    def processOutput(self, line: str):
+        self.log.debug(line)
+
+    def processError(self, line: str):
+        self.log.error(line)
+
+
+class PermissionFixReader(OutputReaderLogger):
     PERMISSION_DENIED = re.compile('(?:[^:]+:)* ?([^:]+): Permission denied')
     """Tested patterns:
     /bin/sh: 1: ./script.sh: Permission denied
@@ -62,7 +87,10 @@ class PermissionFixReader(OutputReader):
             return
 
         self._fixPermission(f'cd "{workingDir}" ; chmod u+x "{fileWithoutPermission}"')
-        self._startThread(_PopenWrapper(self.originalProcess.args))
+
+        process = _PopenWrapper(self.originalProcess.args)
+        self.outputThread = self._startThread(process, target=self._readOutput)
+        self.stderrThread = self._startThread(process, target=self._readError)
 
     def _getWorkingDir(self) -> Optional[str]:
         args = shlex.split(self.originalProcess.args)
@@ -87,6 +115,7 @@ class PermissionFixReader(OutputReader):
 
 
 def runProcessAsync(cmd: Union[None, str, List[str]], *args, shell=True,
+                    logHandlers: List[logging.Handler] = (),
                     reader: Optional[Type[OutputReader]] = PermissionFixReader, **kwargs):
     if not cmd:
         return False
@@ -98,6 +127,6 @@ def runProcessAsync(cmd: Union[None, str, List[str]], *args, shell=True,
         return False
 
     if reader:
-        reader(process)
+        reader(process, logHandlers=logHandlers)
 
     return True
