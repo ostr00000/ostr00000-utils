@@ -1,12 +1,11 @@
 from abc import ABCMeta
-from typing import Type
 
 from PyQt5.QtCore import QObject
 
 
 class BaseMeta(type):
     @classmethod
-    def wrap(mcs, otherClass: Type):
+    def wrap(mcs, otherClass: type):
         return mcs.wrapMetaClass(type(otherClass))
 
     @classmethod

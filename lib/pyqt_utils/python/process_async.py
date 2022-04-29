@@ -3,7 +3,7 @@ import re
 import shlex
 from subprocess import Popen, PIPE
 from threading import Thread
-from typing import Optional, Union, List, Type, Callable
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,7 @@ class PermissionFixReader(OutputReaderLogger):
         self.outputThread = self._startThread(process, target=self._readOutput)
         self.stderrThread = self._startThread(process, target=self._readError)
 
-    def _getWorkingDir(self) -> Optional[str]:
+    def _getWorkingDir(self) -> str | None:
         args = shlex.split(self.originalProcess.args)
 
         if len(args) < 3:
@@ -114,9 +114,9 @@ class PermissionFixReader(OutputReaderLogger):
             self.log.info(stdout)
 
 
-def runProcessAsync(cmd: Union[None, str, List[str]], *args, shell=True,
-                    logHandlers: List[logging.Handler] = (),
-                    reader: Optional[Type[OutputReader]] = PermissionFixReader, **kwargs):
+def runProcessAsync(cmd: None | str | list[str], *args, shell=True,
+                    logHandlers: list[logging.Handler] = (),
+                    reader: type[OutputReader] | None = PermissionFixReader, **kwargs):
     if not cmd:
         return False
 

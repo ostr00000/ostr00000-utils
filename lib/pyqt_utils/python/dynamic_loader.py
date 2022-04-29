@@ -3,7 +3,7 @@ import logging
 import pkgutil
 from inspect import isabstract, isclass
 from types import ModuleType
-from typing import Iterator, Type
+from typing import Iterator
 
 _moduleLogger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ def loadClassFromPackage(
         requiredSubclass: type = object,
         filterPrivate: bool = True,
         logger: logging.Logger = _moduleLogger,
-) -> Iterator[Type]:
+) -> Iterator[type]:
     """
     Load all modules from package and subpackages and return classes defined within.
     :param package: Main package from all classes will be loaded.

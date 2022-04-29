@@ -1,5 +1,4 @@
 from functools import partial
-from typing import List
 
 from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtGui import QValidator, QKeyEvent
@@ -9,26 +8,27 @@ from PyQt5.QtWidgets import QLineEdit, QHBoxLayout, QWidget
 class SpaceLineEdit(QWidget):
     SPLIT_CHARS = ' ,;'
 
-    def __init__(self, parent=None, validator=None, flags=Qt.WindowFlags()):
-        # type: (QWidget, QValidator, Qt.WindowFlags) -> None
-        super(SpaceLineEdit, self).__init__(parent, flags)
+    def __init__(self, parent: QWidget = None,
+                 validator: QValidator = None,
+                 flags=Qt.WindowFlags()):
+        super().__init__(parent, flags)
         self.setFocusPolicy(Qt.StrongFocus)
         self._validator = validator
         self._layout = QHBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._prepareLineEdit(0)
 
-    def setValidator(self, validator):  # type: (QValidator) -> None
+    def setValidator(self, validator: QValidator):
         self._validator = validator
 
-    def getValues(self):  # type: () -> List[str]
+    def getValues(self) -> list[str]:
         values = []
         for index in range(self._layout.count()):
             text = self._layout.itemAt(index).widget().text()
             values.append(text)
         return values
 
-    def setValues(self, values):  # type: (List[str]) -> None
+    def setValues(self, values: list[str]):
         self._cleanAll()
         if not values:
             values = ['']
@@ -37,11 +37,11 @@ class SpaceLineEdit(QWidget):
 
     def _cleanAll(self):
         for index in reversed(range(self._layout.count())):
-            widget = self._layout.takeAt(index).widget()  # type: QWidget
+            widget = self._layout.takeAt(index).widget()
             widget.setParent(None)
             widget.deleteLater()
 
-    def _prepareLineEdit(self, position, text=''):  # type: (int, str) -> None
+    def _prepareLineEdit(self, position: int, text=''):
         lineEdit = QLineEdit(str(text), self)
         lineEdit.setValidator(self._validator)
         lineEdit.textChanged.connect(partial(self.onTextChanged, lineEdit))
@@ -53,7 +53,7 @@ class SpaceLineEdit(QWidget):
         if item:
             item.widget().setFocus()
 
-    def onTextChanged(self, lineEdit, text):  # type: (QLineEdit, str) -> None
+    def onTextChanged(self, lineEdit: QLineEdit, text: str):
         if not text:
             self._removeLineEdit(lineEdit)
 
@@ -61,7 +61,7 @@ class SpaceLineEdit(QWidget):
         if self._isSplit(text):
             self._addLineEdit(lineEdit, text)
 
-    def _removeLineEdit(self, lineEdit, changeFocus=True):  # type: (QLineEdit, bool) -> None
+    def _removeLineEdit(self, lineEdit: QLineEdit, changeFocus=True):
         if self._layout.count() <= 1:
             return
 
@@ -73,16 +73,16 @@ class SpaceLineEdit(QWidget):
         lineEdit.deleteLater()
 
     @staticmethod
-    def _convert(text):  # type: (str) -> str
+    def _convert(text: str) -> str:
         for sch in SpaceLineEdit.SPLIT_CHARS[1:]:
             text = text.replace(sch, ' ')
         return text
 
     @staticmethod
-    def _isSplit(text):  # type: (str) -> bool
+    def _isSplit(text: str) -> bool:
         return ' ' in text
 
-    def _addLineEdit(self, lineEdit, text):  # type: (QLineEdit, str) -> None
+    def _addLineEdit(self, lineEdit: QLineEdit, text: str):
         texts = text.split()
         if not texts:
             lineEdit.setText('')
@@ -99,9 +99,9 @@ class SpaceLineEdit(QWidget):
 
         self._setFocus(lineEdit, offset=1)
 
-    def eventFilter(self, watched, event):  # type: (QWidget, QEvent) -> bool
+    def eventFilter(self, watched: QWidget, event: QEvent) -> bool:
         if isinstance(watched, QLineEdit):
-            lineEdit = watched  # type: QLineEdit
+            lineEdit = watched
 
             if event.type() == QEvent.FocusOut and not lineEdit.text():
                 self._removeLineEdit(lineEdit, changeFocus=False)
@@ -115,9 +115,9 @@ class SpaceLineEdit(QWidget):
                 elif event.key() == Qt.Key_Up:
                     self._setFocus(lineEdit, offset=-1)
 
-        return super(SpaceLineEdit, self).eventFilter(watched, event)
+        return super().eventFilter(watched, event)
 
-    def _setFocus(self, lineEdit, offset):  # type: (QLineEdit, int) -> bool
+    def _setFocus(self, lineEdit: QLineEdit, offset: int) -> bool:
         index = self._layout.indexOf(lineEdit) + offset
         item = self._layout.itemAt(index)
         if item:

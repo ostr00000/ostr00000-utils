@@ -1,6 +1,5 @@
 import logging
 from abc import abstractmethod
-from typing import Optional
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 class DisplayWidgetAction(QAction, metaclass=QtAbcMeta):
     def __init__(self, icon=QIcon(), text='', parent: QWidget = None):
         super().__init__(icon, text, parent)
-        self.widget: Optional[QWidget] = None
+        self.widget: QWidget | None = None
         self.triggered.connect(self.onTriggered)
 
     @safeRun

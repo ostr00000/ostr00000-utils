@@ -1,9 +1,9 @@
 import json
 import logging
-from typing import Union, Sequence, Type, Callable, Any
+from typing import Sequence, Callable, Any
 
 logger = logging.getLogger(__name__)
-deepMapElement = Union[None, Type, Callable[[dict], Any]]
+deepMapElement = None | type | Callable[[dict], Any]
 deepMapSequence = Sequence[deepMapElement]
 
 

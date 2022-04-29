@@ -1,7 +1,7 @@
 import logging
 
 
-class SkipFrameInModule(object):
+class SkipFrameInModule:
     def __init__(self, *args):
         # noinspection PyUnresolvedReferences,PyProtectedMember
         self._moduleNames = [logging._srcfile] + list(args)
