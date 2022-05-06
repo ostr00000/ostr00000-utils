@@ -3,7 +3,7 @@ import re
 import shlex
 from subprocess import Popen, PIPE
 from threading import Thread
-from typing import Callable
+from typing import Callable, overload
 
 logger = logging.getLogger(__name__)
 
@@ -114,14 +114,21 @@ class PermissionFixReader(OutputReaderLogger):
             self.log.info(stdout)
 
 
-def runProcessAsync(cmd: None | str | list[str], *args, shell=True,
+@overload
+def runProcessAsync(cmd: list[str], *args, shell=False,
+                    logHandlers: list[logging.Handler] = (),
+                    reader: type[OutputReader] | None = PermissionFixReader, **kwargs):
+    ...
+
+
+def runProcessAsync(cmd: str, *args, shell=True,
                     logHandlers: list[logging.Handler] = (),
                     reader: type[OutputReader] | None = PermissionFixReader, **kwargs):
     if not cmd:
         return False
 
     try:
-        process = _PopenWrapper(cmd, *args, shell, **kwargs)
+        process = _PopenWrapper(cmd, *args, shell=shell, **kwargs)
     except Exception as e:
         logger.error(str(e))
         return False
