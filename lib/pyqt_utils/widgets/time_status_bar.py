@@ -1,3 +1,4 @@
+import collections
 from datetime import datetime
 
 from PyQt5.QtWidgets import QStatusBar
@@ -5,9 +6,17 @@ from decorator import decorator
 
 
 class TimeStatusBar(QStatusBar):
-    def showMessage(self, message: str, msecs: int = 0):
+    HISTORY_SIZE = 10
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._history = collections.deque(maxlen=self.HISTORY_SIZE)
+
+    def showMessage(self, message: str, timeout: int = 0):
         msg = f'{datetime.now().strftime("%H:%M:%S.%f")[:-4]} :  {message}'
-        return super().showMessage(msg, msecs)
+        self._history.append(msg)
+        self.setToolTip('\n'.join(self._history))
+        return super().showMessage(msg, timeout)
 
 
 @decorator
