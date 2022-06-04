@@ -51,11 +51,12 @@ class OutputReader:
 
 class OutputReaderLogger(OutputReader):
     def __init__(self, process: Popen, logHandlers: list[logging.Handler] = (), **kwargs):
-        super().__init__(process, **kwargs)
         self.log = logging.getLogger(f'{__name__}.{type(self).__name__}.{process.pid}')
         self.log.setLevel(logging.DEBUG)
         for h in logHandlers:
             self.log.addHandler(h)
+
+        super().__init__(process, **kwargs)
 
     def _readOutput(self, process: Popen):
         super()._readOutput(process)
@@ -74,7 +75,7 @@ class PermissionFixReader(OutputReaderLogger):
     /bin/sh: 1: ./script.sh: Permission denied
     """
 
-    def processOutput(self, line: str):
+    def processError(self, line: str):
         if (match := self.PERMISSION_DENIED.match(line)) is None:
             return
 
@@ -121,9 +122,15 @@ def runProcessAsync(cmd: list[str], *args, shell=False,
     ...
 
 
+@overload
 def runProcessAsync(cmd: str, *args, shell=True,
                     logHandlers: list[logging.Handler] = (),
                     reader: type[OutputReader] | None = PermissionFixReader, **kwargs):
+    ...
+
+
+def runProcessAsync(cmd: str, *args, shell=True, logHandlers=(),
+                    reader=PermissionFixReader, **kwargs):
     if not cmd:
         return False
 
