@@ -14,90 +14,106 @@ class SpaceLineEdit(QWidget):
         super().__init__(parent, flags)
         self.setFocusPolicy(Qt.StrongFocus)
         self._validator = validator
-        self._layout = QHBoxLayout(self)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._prepareLineEdit(0)
+        self._lineEdits: list[QLineEdit] = [self._createLineEdit()]
+        self._isUpdating = False
+        self._initStartWidget()
+        self._refreshLayout()
+
+    def _initStartWidget(self):
+        self._layout = self._createLayout()
+        self.setLayout(self._layout)
+
+    @staticmethod
+    def _createLayout():
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        return layout
+
+    def _refreshLayout(self):
+        widgets = [self._layout.itemAt(i).widget()
+                   for i in range(self._layout.count())]
+
+        for w in widgets:
+            if w and w not in self._lineEdits:
+                self._layout.removeWidget(w)
+                w.deleteLater()
+
+        for i, le in enumerate(self._lineEdits):
+            if le not in widgets:
+                self._layout.insertWidget(i, le)
 
     def setValidator(self, validator: QValidator):
         self._validator = validator
 
     def getValues(self) -> list[str]:
-        values = []
-        for index in range(self._layout.count()):
-            text = self._layout.itemAt(index).widget().text()
-            values.append(text)
-        return values
+        return [le.text() for le in self._lineEdits]
 
     def setValues(self, values: list[str]):
-        self._cleanAll()
         if not values:
             values = ['']
-        for index, value in enumerate(values):
-            self._prepareLineEdit(index, value)
 
-    def _cleanAll(self):
-        for index in reversed(range(self._layout.count())):
-            widget = self._layout.takeAt(index).widget()
-            widget.setParent(None)
-            widget.deleteLater()
+        self._lineEdits.clear()
+        self._lineEdits = [self._createLineEdit(val) for val in values]
+        self._refreshLayout()
 
-    def _prepareLineEdit(self, position: int, text=''):
+    def _createLineEdit(self, text=''):
         lineEdit = QLineEdit(str(text), self)
         lineEdit.setValidator(self._validator)
         lineEdit.textChanged.connect(partial(self.onTextChanged, lineEdit))
         lineEdit.installEventFilter(self)
-        self._layout.insertWidget(position, lineEdit)
+        return lineEdit
 
     def focusInEvent(self, event):
-        item = self._layout.itemAt(0)
-        if item:
-            item.widget().setFocus()
+        layout = self.layout()
+        while layout:
+            item = layout.itemAt(0)
+            if not item:
+                return
+
+            widget = item.widget()
+            if widget:
+                widget.setFocus()
+                return
+
+            layout = item.layout()
 
     def onTextChanged(self, lineEdit: QLineEdit, text: str):
-        if not text:
-            self._removeLineEdit(lineEdit)
+        if self._isUpdating:
+            return
+        self._isUpdating = True
 
         text = self._convert(text)
-        if self._isSplit(text):
-            self._addLineEdit(lineEdit, text)
+        if self.SPLIT_CHARS[0] in text:
+            texts = text.split(self.SPLIT_CHARS[0]) or ['']
+            lineEdit.setText(texts[0])
+            if texts != ['', '']:
+                insertIndex = self._lineEdits.index(lineEdit) + 1
+                for index, text in enumerate(texts[1:], insertIndex):
+                    self._lineEdits.insert(index, self._createLineEdit(text))
+                self._refreshLayout()
+                self._setFocus(lineEdit, offset=1)
+
+        self._isUpdating = False
+
+    @classmethod
+    def _convert(cls, text: str) -> str:
+        for sch in cls.SPLIT_CHARS[1:]:
+            text = text.replace(sch, cls.SPLIT_CHARS[0])
+        return text
 
     def _removeLineEdit(self, lineEdit: QLineEdit, changeFocus=True):
-        if self._layout.count() <= 1:
+        if len(self._lineEdits) <= 1:  # there must be always at least one line edit
             return
 
         if changeFocus:
             if not self._setFocus(lineEdit, offset=-1):
                 self._setFocus(lineEdit, offset=1)
 
-        self._layout.removeWidget(lineEdit)
-        lineEdit.deleteLater()
-
-    @staticmethod
-    def _convert(text: str) -> str:
-        for sch in SpaceLineEdit.SPLIT_CHARS[1:]:
-            text = text.replace(sch, ' ')
-        return text
-
-    @staticmethod
-    def _isSplit(text: str) -> bool:
-        return ' ' in text
-
-    def _addLineEdit(self, lineEdit: QLineEdit, text: str):
-        texts = text.split()
-        if not texts:
-            lineEdit.setText('')
-            return
-        else:
-            lineEdit.setText(texts[0])
-
-        if len(texts) == 1:
-            texts.append('')
-
-        insertIndex = self._layout.indexOf(lineEdit) + 1
-        for index, text in enumerate(texts[1:], insertIndex):
-            self._prepareLineEdit(index, text)
-
-        self._setFocus(lineEdit, offset=1)
+        try:
+            self._lineEdits.remove(lineEdit)
+            self._refreshLayout()
+        except ValueError:
+            pass  # we may call this function 2 times: FocusOut event or onTextChanged
 
     def eventFilter(self, watched: QWidget, event: QEvent) -> bool:
         if isinstance(watched, QLineEdit):
@@ -109,8 +125,7 @@ class SpaceLineEdit(QWidget):
             elif event.type() == QEvent.KeyPress and isinstance(event, QKeyEvent):
                 if event.key() == Qt.Key_Backspace and not lineEdit.text():
                     self._removeLineEdit(lineEdit)
-
-                if event.key() == Qt.Key_Down:
+                elif event.key() == Qt.Key_Down:
                     self._setFocus(lineEdit, offset=1)
                 elif event.key() == Qt.Key_Up:
                     self._setFocus(lineEdit, offset=-1)
@@ -118,10 +133,8 @@ class SpaceLineEdit(QWidget):
         return super().eventFilter(watched, event)
 
     def _setFocus(self, lineEdit: QLineEdit, offset: int) -> bool:
-        index = self._layout.indexOf(lineEdit) + offset
-        item = self._layout.itemAt(index)
-        if item:
-            item.widget().setFocus(Qt.OtherFocusReason)
+        index = self._lineEdits.index(lineEdit) + offset
+        if 0 <= index < len(self._lineEdits):
+            self._lineEdits[index].setFocus(Qt.OtherFocusReason)
             return True
-
         return False
