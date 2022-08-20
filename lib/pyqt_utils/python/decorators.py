@@ -145,3 +145,15 @@ def cursorDec(fun, cursor=Qt.WaitCursor, *args, **kwargs):
         return fun(*args, **kwargs)
     finally:
         QApplication.restoreOverrideCursor()
+
+
+@decoratorForSlot
+def singleCallDec(fun, *args, attrName='__is_calling__', callingDefaultValue=None, **kwargs):
+    isCalling = getattr(fun, attrName, False)
+    if isCalling:
+        return callingDefaultValue
+    setattr(fun, attrName, True)
+    try:
+        return fun(*args, **kwargs)
+    finally:
+        setattr(fun, attrName, False)
