@@ -1,5 +1,6 @@
 import collections
 from datetime import datetime
+from typing import TypeVar, Callable, Protocol, cast
 
 from PyQt5.QtWidgets import QStatusBar
 from decorator import decorator
@@ -20,8 +21,8 @@ class TimeStatusBar(QStatusBar):
 
 
 @decorator
-def changeStatusDec(fun, msg: str = '', failureMsg='', returnValue=1,
-                    *args, **kwargs):
+def _changeStatusDec(fun, msg='', failureMsg='', returnValue=True,
+                     *args, **kwargs):
     """
     None -> (skip decorator)
     False -> failureMsg
@@ -42,3 +43,14 @@ def changeStatusDec(fun, msg: str = '', failureMsg='', returnValue=1,
     statusBar.showMessage(msg)
     if returnValue:
         return val
+
+
+Fun_t = TypeVar('Fun_t', bound=Callable)
+
+
+class StatusDec_t(Protocol):
+    def __call__(self, *, msg: str = '', failureMsg: str = '', returnValue: bool = True) \
+            -> Callable[[Fun_t], Fun_t]: ...
+
+
+changeStatusDec = cast(StatusDec_t, _changeStatusDec)

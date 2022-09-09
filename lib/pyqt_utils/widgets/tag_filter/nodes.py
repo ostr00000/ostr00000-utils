@@ -2,6 +2,12 @@ from __future__ import annotations
 
 import pickle
 from collections.abc import Iterable
+from typing import Protocol
+
+
+class StrComparable(Protocol):
+    def __eq__(self, other: str):
+        ...
 
 
 class TagFilterNode:
@@ -11,7 +17,7 @@ class TagFilterNode:
         self.tagName = self.TAG_NAME if tagName is None else tagName
         self.parent = parent
 
-    def isAccepted(self, tags: list[str]) -> bool:
+    def isAccepted(self, tags: list[StrComparable | str]) -> bool:
         return self.tagName in tags
 
     def filterTags(self, allowedTags: Iterable[str]):
@@ -35,13 +41,23 @@ class TagFilterNode:
 
 
 class TagFilterSequenceNode(TagFilterNode):
-    def __init__(self, tagList: list[TagFilterNode] = (), parent: TagFilterNode = None):
-        self.tagList = tagList
+    def __init__(self, tagList: list[TagFilterNode] = None, parent: TagFilterNode = None):
+        self.tagList = [] if tagList is None else tagList
         super().__init__(parent=parent)
+        for t in self.tagList:
+            t.parent = self
 
     def filterTags(self, allowedTags: Iterable[str]):
         self.tagList = [t for t in self.tagList if t.filterTags(allowedTags)]
         return bool(self.tagList)
+
+    def insert(self, pos: int, node: TagFilterNode):
+        self.tagList.insert(pos, node)
+        node.parent = self
+
+    def remove(self, node: TagFilterNode):
+        self.tagList.remove(node)
+        node.parent = None
 
     def __repr__(self):
         return f'{str(self)}[{",".join(repr(t) for t in self.tagList)}]'
@@ -55,6 +71,21 @@ class TagFilterOrNode(TagFilterSequenceNode):
 
     def isAccepted(self, tags: list[str]) -> bool:
         return any(t.isAccepted(tags) for t in self.tagList)
+
+
+class TagFilterExcludeNode(TagFilterSequenceNode):
+    TAG_NAME = 'NOT'
+
+    def __init__(self, tagContent: TagFilterNode, parent: TagFilterNode = None):
+        super().__init__([tagContent], parent=parent)
+
+    def isAccepted(self, tags: list[str]) -> bool:
+        return not super().isAccepted(tags)
+
+    @property
+    def content(self):
+        assert len(self.tagList) == 1
+        return self.tagList[0]
 
 
 class TagFilterAndNode(TagFilterSequenceNode):

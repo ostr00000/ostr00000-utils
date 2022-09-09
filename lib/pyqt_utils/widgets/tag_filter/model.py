@@ -3,25 +3,28 @@ import logging
 import pickle
 from collections.abc import Iterable
 
-from PyQt5.QtCore import QModelIndex, QAbstractItemModel, Qt, QMimeData
+from PyQt5.QtCore import QModelIndex, QAbstractItemModel, Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QStandardItemModel
 
-from pyqt_utils.widgets.include_exclude.nodes import TagFilterNode, TagFilterSequenceNode, \
-    TagFilterOrNode
+from pyqt_utils.widgets.tag_filter.nodes import TagFilterNode, TagFilterSequenceNode, \
+    TagFilterOrNode, TagFilterExcludeNode
 
 logger = logging.getLogger(__name__)
 NodePath_T = tuple[int, ...]
 NodePaths_T = list[NodePath_T]
 
 
-class IncludeExcludeModel(QAbstractItemModel):
+class TagFilterModel(QAbstractItemModel):
+    failureCause = pyqtSignal(str)
+
     def __init__(self, topNode: TagFilterOrNode = None):
         super().__init__()
         if topNode is None:
             self.topNode = TagFilterOrNode()
         else:
             self.topNode = copy.deepcopy(topNode)
-        self.topLevelModel = self.createIndex(0, 0, self.topNode)
+        self.topLevelIndex = self.createIndex(0, 0, self.topNode)
+        self.failureCause.connect(logger.debug)
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
@@ -81,6 +84,9 @@ class IncludeExcludeModel(QAbstractItemModel):
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         flags = super().flags(index)
+        if not index.isValid():  # root index / dropping on viewport
+            return flags | Qt.ItemIsDropEnabled
+
         match index.internalPointer():
             case self.topNode:
                 return flags | Qt.ItemIsDropEnabled
@@ -92,16 +98,16 @@ class IncludeExcludeModel(QAbstractItemModel):
     def supportedDropActions(self) -> Qt.DropActions:
         return Qt.MoveAction | Qt.CopyAction
 
-    INC_EXC_MIME = 'application/include_exclude_indexes'
+    TAG_FILTER_MIME = 'application/tag_filter_indexes'
     QT_MIME = 'application/x-qabstractitemmodeldatalist'
 
     def mimeTypes(self) -> list[str]:
-        return [self.INC_EXC_MIME, self.QT_MIME]
+        return [self.TAG_FILTER_MIME, self.QT_MIME]
 
     def mimeData(self, indexes: Iterable[QModelIndex]) -> QMimeData:
         md = QMimeData()
         nodePaths = self._filterRepeatedParentNodes(indexes)
-        md.setData(self.INC_EXC_MIME, pickle.dumps(nodePaths))
+        md.setData(self.TAG_FILTER_MIME, pickle.dumps(nodePaths))
         return md
 
     def _filterRepeatedParentNodes(self, indexes: Iterable[QModelIndex]) -> NodePaths_T:
@@ -131,21 +137,28 @@ class IncludeExcludeModel(QAbstractItemModel):
         if action == Qt.CopyAction and mimeData.hasFormat(self.QT_MIME):
             return self._dropSimpleData(parentIndex, mimeData, row)
 
-        if action == Qt.MoveAction and mimeData.hasFormat(self.INC_EXC_MIME):
-            nodePaths: NodePaths_T = pickle.loads(mimeData.data(self.INC_EXC_MIME))
+        if action == Qt.MoveAction and mimeData.hasFormat(self.TAG_FILTER_MIME):
+            byteObj = mimeData.data(self.TAG_FILTER_MIME).data()
+            nodePaths: NodePaths_T = pickle.loads(byteObj)
             return self._dropNodePath(parentIndex, nodePaths, row)
 
-    def _dropSimpleData(self, parentIndex: QModelIndex, mimeData: QMimeData, row: int):
+        return False
+
+    def _dropSimpleData(self, parentIndex: QModelIndex, mimeData: QMimeData, row: int) -> bool:
         model = QStandardItemModel()
         model.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex())
         if model.columnCount() != 1:
+            msg = self.tr("Unsupported column size: {}, expected 1")
+            self.failureCause.emit(msg.format(model.columnCount()))
             return False
 
-        counter = 0
-        for rowNum in range(model.rowCount()):
-            text = model.item(rowNum, 0).text()
-            if self.addSimple(text, parentIndex, row + counter):
-                counter += 1
+        values = [model.item(rowNum, 0).text() for rowNum in range(model.rowCount())]
+        if row == -1:
+            for val in values:
+                self.addSimple(val, parentIndex)
+        else:
+            for i, val in enumerate(values, row):
+                self.addSimple(val, parentIndex, i)
 
         return True
 
@@ -166,8 +179,7 @@ class IncludeExcludeModel(QAbstractItemModel):
             first = len(nodeParent.tagList)
         self.beginInsertRows(parentIndex, first, first + len(nodePaths) - 1)
         for pos, node in enumerate(nodes, first):
-            nodeParent.tagList.insert(pos, node)
-            node.parent = nodeParent
+            nodeParent.insert(pos, node)
         self.endInsertRows()
         return True
 
@@ -183,39 +195,36 @@ class IncludeExcludeModel(QAbstractItemModel):
             node = parent.internalPointer()
         else:
             node = self.topNode
-            parent = self.topLevelModel
+            parent = self.topLevelIndex
 
         if not isinstance(node, TagFilterSequenceNode):
+            self.failureCause.emit(self.tr("Index is not of sequence type"))
             return False
 
         for t in node.tagList:
             if t.tagName == text:
+                self.failureCause.emit(self.tr("Tag with name: {} already exist").format(text))
                 return False
 
         if row is None:
             row = len(node.tagList)
         self.beginInsertRows(parent, row, row)
         tn = TagFilterNode(tagName=text, parent=node)
-        node.tagList.insert(row, tn)
+        node.insert(row, tn)
         self.endInsertRows()
         return True
 
     def mergeTags(self, nodeType: type[TagFilterSequenceNode], indexes: list[QModelIndex]
                   ) -> QModelIndex | None:
-        if not indexes:
-            logger.debug("No index to merge")
+        if self._isIndexInvalid(*indexes):
             return
 
         indexParent = indexes[0].parent()
         nodeParent: TagFilterSequenceNode = indexParent.internalPointer()
         firstNodeIndex = len(nodeParent)
         for ind in indexes:
-            if not ind.isValid():
-                return
-            if ind == self.topLevelModel:
-                return
             if ind.parent() != indexParent:
-                logger.debug("Indexes have different parents")
+                self.failureCause.emit(self.tr("Indexes have different parents"))
                 return
 
             firstNodeIndex = min(firstNodeIndex, nodeParent.tagList.index(ind.internalPointer()))
@@ -226,22 +235,54 @@ class IncludeExcludeModel(QAbstractItemModel):
 
         self.beginInsertRows(indexParent, firstNodeIndex, firstNodeIndex)
         mergedNode = nodeType(tagList=nodes, parent=nodeParent)
-        for n in nodes:
-            n.parent = mergedNode
-        nodeParent.tagList.insert(firstNodeIndex, mergedNode)
+        nodeParent.insert(firstNodeIndex, mergedNode)
         self.endInsertRows()
 
         return self.index(firstNodeIndex, 0, indexParent)
 
     def remove(self, curIndex: QModelIndex):
-        if not curIndex.isValid() or curIndex == self.topLevelModel:
+        if self._isIndexInvalid(curIndex):
             return
 
-        self.beginRemoveRows(curIndex.parent(), curIndex.row(), curIndex.row())
         node: TagFilterNode = curIndex.internalPointer()
         parentNode = node.parent
         assert isinstance(parentNode, TagFilterSequenceNode)
-        parentNode.tagList.remove(node)
-        node.parent = None
+
+        self.beginRemoveRows(curIndex.parent(), curIndex.row(), curIndex.row())
+        parentNode.remove(node)
         self.endRemoveRows()
         return node
+
+    def _isIndexInvalid(self, *indexes: QModelIndex) -> bool:
+        if not indexes:
+            self.failureCause.emit(self.tr("There is no index"))
+            return True
+        for index in indexes:
+            if not index.isValid():
+                self.failureCause.emit(self.tr("The index is invalid"))
+                return True
+            if index == self.topLevelIndex:
+                self.failureCause.emit(self.tr("Cannot use top level index"))
+                return True
+        return False
+
+    def negate(self, index: QModelIndex):
+        if self._isIndexInvalid(index):
+            return
+
+        node: TagFilterNode = index.internalPointer()
+        parentNode = node.parent
+        assert isinstance(parentNode, TagFilterSequenceNode)
+
+        row = index.row()
+        indexParent = index.parent()
+        self.remove(index)
+
+        self.beginInsertRows(indexParent, row, row)
+        if isinstance(node, TagFilterExcludeNode):
+            nodeContent = node.content
+        else:
+            nodeContent = TagFilterExcludeNode(node)
+        parentNode.insert(row, nodeContent)
+        self.endInsertRows()
+        return True
