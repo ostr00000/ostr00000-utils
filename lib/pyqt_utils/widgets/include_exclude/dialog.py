@@ -27,9 +27,14 @@ class IncludeExcludeFilterDialog(Ui_IncludeExcludeDialog, BaseWidget, QDialog):
         self._possibleValues = sorted(possibleValues)
 
         self._includeModel = IncludeExcludeModel(includeValues)
+        self._includeModel.rowsInserted.connect(self.onIncludeRowsInserted)
+        self._includeModel.rowsMoved.connect(self.onIncludeRowsMoved)
         self.includeView.setModel(self._includeModel)
         self.includeView.expandAll()
+
         self._excludeModel = IncludeExcludeModel(excludeValues)
+        self._excludeModel.rowsInserted.connect(self.onExcludeRowsInserted)
+        self._excludeModel.rowsMoved.connect(self.onExcludeRowsMoved)
         self.excludeView.setModel(self._excludeModel)
         self.excludeView.expandAll()
         self.possibleTagsWidget.addItems(self._possibleValues)
@@ -46,6 +51,25 @@ class IncludeExcludeFilterDialog(Ui_IncludeExcludeDialog, BaseWidget, QDialog):
         self.searchLineEdit.setCompleter(QCompleter(self._possibleValues, self))
         self.searchLineEdit.setValidator(SubstringValidator(self._possibleValues, self))
         self.searchLineEdit.textChanged.connect(self.onSearchLineTextChanged)
+
+    def onIncludeRowsInserted(self, parent: QModelIndex, first: int, last: int):
+        self._expandView(self.includeView, parent, first, last)
+
+    def onExcludeRowsInserted(self, parent: QModelIndex, first: int, last: int):
+        self._expandView(self.excludeView, parent, first, last)
+
+    def onIncludeRowsMoved(self, _parent: QModelIndex, start: int, end: int,
+                           destination: QModelIndex, row: int):
+        self._expandView(self.includeView, destination, row, end - start)
+
+    def onExcludeRowsMoved(self, _parent: QModelIndex, start: int, end: int,
+                           destination: QModelIndex, row: int):
+        self._expandView(self.excludeView, destination, row, end - start)
+
+    def _expandView(self, view: QTreeView, parent: QModelIndex, first: int, last: int):
+        model = parent.model()
+        for row in range(first, last + 1):
+            view.expand(model.index(row, 0, parent))
 
     def onInclude(self):
         self._addToModel(self.includeView, self._includeModel)

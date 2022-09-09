@@ -20,6 +20,9 @@ class TagFilterNode:
     def __str__(self):
         return self.tagName
 
+    def __repr__(self):
+        return str(self)
+
     @classmethod
     def deserialize(cls, data: bytes):
         return pickle.loads(data)
@@ -39,6 +42,9 @@ class TagFilterSequenceNode(TagFilterNode):
     def filterTags(self, allowedTags: Iterable[str]):
         self.tagList = [t for t in self.tagList if t.filterTags(allowedTags)]
         return bool(self.tagList)
+
+    def __repr__(self):
+        return f'{str(self)}[{",".join(repr(t) for t in self.tagList)}]'
 
     def __len__(self):
         return len(self.tagList)

@@ -13,10 +13,6 @@
   <property name="windowTitle">
    <string>Tag filter</string>
   </property>
-  <property name="windowIcon">
-   <iconset theme="list-remove">
-    <normaloff>.</normaloff>.</iconset>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QSplitter" name="splitter">
@@ -62,6 +58,18 @@
        </item>
        <item row="1" column="0" colspan="4">
         <widget class="QTreeView" name="includeView">
+         <property name="acceptDrops">
+          <bool>true</bool>
+         </property>
+         <property name="dragEnabled">
+          <bool>true</bool>
+         </property>
+         <property name="dragDropMode">
+          <enum>QAbstractItemView::DragDrop</enum>
+         </property>
+         <property name="defaultDropAction">
+          <enum>Qt::MoveAction</enum>
+         </property>
          <property name="selectionMode">
           <enum>QAbstractItemView::ExtendedSelection</enum>
          </property>
@@ -111,6 +119,12 @@
        </item>
        <item row="1" column="0" colspan="3">
         <widget class="QListWidget" name="possibleTagsWidget">
+         <property name="dragEnabled">
+          <bool>true</bool>
+         </property>
+         <property name="dragDropMode">
+          <enum>QAbstractItemView::DragOnly</enum>
+         </property>
          <property name="selectionMode">
           <enum>QAbstractItemView::ExtendedSelection</enum>
          </property>
@@ -157,6 +171,9 @@
        </item>
        <item row="1" column="0" colspan="4">
         <widget class="QTreeView" name="excludeView">
+         <property name="dragDropMode">
+          <enum>QAbstractItemView::DragDrop</enum>
+         </property>
          <property name="selectionMode">
           <enum>QAbstractItemView::ExtendedSelection</enum>
          </property>
