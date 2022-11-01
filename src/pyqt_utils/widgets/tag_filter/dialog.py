@@ -3,7 +3,8 @@ from __future__ import annotations
 import copy
 import logging
 
-from PyQt5.QtCore import QModelIndex, Qt, QItemSelectionModel
+from PyQt5.QtCore import QModelIndex, Qt, QItemSelectionModel, QStringListModel
+from PyQt5.QtTest import QAbstractItemModelTester
 from PyQt5.QtWidgets import QDialog, QListWidget, QCompleter
 
 from pyqt_utils.qobjects.substring_validator import SubstringValidator
@@ -31,6 +32,8 @@ class TagFilterDialog(Ui_TagDialog, BaseWidget, QDialog):
         self._tagModel.rowsInserted.connect(self.onIncludeRowsInserted)
         self._tagModel.rowsMoved.connect(self.onIncludeRowsMoved)
         self._tagModel.dataChanged.connect(self.onIncludeRowsMoved)
+        self._testModel = QAbstractItemModelTester(
+            self._tagModel, QAbstractItemModelTester.FailureReportingMode.Warning, self)
         self.expressionTree.setModel(self._tagModel)
         self.expressionTree.expandAll()
         self.expressionTree.setAcceptDrops(True)
@@ -52,6 +55,14 @@ class TagFilterDialog(Ui_TagDialog, BaseWidget, QDialog):
         self.possibleTagsWidget.clear()
         self.possibleTagsWidget.addItems(self._possibleValues)
 
+        if comp := self.searchLineEdit.completer():
+            model: QStringListModel = comp.model()
+            model.setStringList(values)
+
+        if validator := self.searchLineEdit.validator():
+            if isinstance(validator, SubstringValidator):
+                validator.setPossibleValues(self._possibleValues)
+
     def onIncludeRowsInserted(self, parent: QModelIndex, first: int, last: int):
         self._expandView(parent, first, last)
 
@@ -60,9 +71,8 @@ class TagFilterDialog(Ui_TagDialog, BaseWidget, QDialog):
         self._expandView(destination, row, end - start)
 
     def _expandView(self, parent: QModelIndex, first: int, last: int):
-        model = parent.model()
         for row in range(first, last + 1):
-            self.expressionTree.expandRecursively(model.index(row, 0, parent))
+            self.expressionTree.expandRecursively(self._tagModel.index(row, 0, parent))
 
     def onIncludeClicked(self):
         if indexes := self.possibleTagsWidget.selectedIndexes():
@@ -72,8 +82,7 @@ class TagFilterDialog(Ui_TagDialog, BaseWidget, QDialog):
 
     def onRemoveClicked(self):
         if indexes := self.expressionTree.selectedIndexes():
-            for i in indexes:
-                self._tagModel.remove(i)
+            self._tagModel.removeIndexes(indexes)
             self._refreshAfterAction(self._tagModel.topLevelIndex)
 
     def _refreshAfterAction(self, currentModel: QModelIndex):
@@ -98,9 +107,6 @@ class TagFilterDialog(Ui_TagDialog, BaseWidget, QDialog):
             self._tagModel.negate(indexes[0])
 
     def onSearchLineTextChanged(self, newText: str):
-        if newText not in self._possibleValues:
-            return
-
         if founded := self.possibleTagsWidget.findItems(newText, Qt.MatchFixedString):
             f = founded[0]  # all items should be unique
             self.possibleTagsWidget.setCurrentItem(f)

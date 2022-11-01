@@ -13,50 +13,22 @@
   <property name="windowTitle">
    <string>Tag filter</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
     <widget class="QSplitter" name="splitter">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
      <widget class="QWidget" name="layoutWidget">
-      <layout class="QGridLayout" name="gridLayout_2">
-       <item row="0" column="0">
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
         <widget class="QLabel" name="label_4">
          <property name="text">
           <string>Possible tags:</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
-        <widget class="QToolButton" name="excludeButton">
-         <property name="text">
-          <string>Exclude</string>
-         </property>
-         <property name="icon">
-          <iconset theme="list-remove">
-           <normaloff>.</normaloff>.</iconset>
-         </property>
-         <property name="toolButtonStyle">
-          <enum>Qt::ToolButtonFollowStyle</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="QToolButton" name="includeButton">
-         <property name="text">
-          <string>Include</string>
-         </property>
-         <property name="icon">
-          <iconset theme="list-add">
-           <normaloff>.</normaloff>.</iconset>
-         </property>
-         <property name="toolButtonStyle">
-          <enum>Qt::ToolButtonFollowStyle</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0" colspan="3">
+       <item>
         <widget class="QListWidget" name="possibleTagsWidget">
          <property name="dragEnabled">
           <bool>true</bool>
@@ -69,9 +41,9 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0" colspan="3">
-        <layout class="QFormLayout" name="formLayout">
-         <item row="0" column="0">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
           <widget class="QLabel" name="label_3">
            <property name="text">
             <string>&amp;Search:</string>
@@ -81,10 +53,41 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
+         <item>
           <widget class="QLineEdit" name="searchLineEdit">
            <property name="clearButtonEnabled">
             <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QToolButton" name="includeButton">
+           <property name="text">
+            <string>Include</string>
+           </property>
+           <property name="icon">
+            <iconset theme="list-add">
+             <normaloff>.</normaloff>.</iconset>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonFollowStyle</enum>
            </property>
           </widget>
          </item>
@@ -137,7 +140,7 @@
           <enum>QAbstractItemView::DragDrop</enum>
          </property>
          <property name="defaultDropAction">
-          <enum>Qt::CopyAction</enum>
+          <enum>Qt::MoveAction</enum>
          </property>
          <property name="selectionMode">
           <enum>QAbstractItemView::ExtendedSelection</enum>
@@ -196,12 +199,13 @@
   </customwidget>
  </customwidgets>
  <tabstops>
-  <tabstop>expressionTree</tabstop>
   <tabstop>possibleTagsWidget</tabstop>
+  <tabstop>searchLineEdit</tabstop>
+  <tabstop>expressionTree</tabstop>
+  <tabstop>negateButton</tabstop>
   <tabstop>andButton</tabstop>
   <tabstop>orButton</tabstop>
-  <tabstop>includeButton</tabstop>
-  <tabstop>excludeButton</tabstop>
+  <tabstop>removeButton</tabstop>
  </tabstops>
  <resources/>
  <connections>
@@ -212,8 +216,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>254</x>
-     <y>555</y>
+     <x>260</x>
+     <y>539</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -228,8 +232,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>322</x>
-     <y>555</y>
+     <x>328</x>
+     <y>539</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>

@@ -1,0 +1,19 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'ostr00000-utils'
+authors = [{ name = 'ostr00000' }]
+version = '0.3.0'
+description = "Set of various frequently used functions, classes."
+
+requires-python = '>=3.10'
+dependencies = [
+    'PyQt5',
+    'decorator',
+]
+
+[tool.setuptools.packages.find]
+where = ['src']
+exclude = ['*tests*']

@@ -23,6 +23,7 @@ class TagFilterModel(QAbstractItemModel):
             self.topNode = TagFilterOrNode()
         else:
             self.topNode = copy.deepcopy(topNode)
+        assert isinstance(self.topNode, TagFilterNode)
         self.topLevelIndex = self.createIndex(0, 0, self.topNode)
         self.failureCause.connect(logger.debug)
 
@@ -51,6 +52,7 @@ class TagFilterModel(QAbstractItemModel):
         else:
             curNode = self.topNode
 
+        assert isinstance(curNode, TagFilterNode)
         return self.createIndex(row, column, curNode)
 
     def parent(self, child: QModelIndex) -> QModelIndex:
@@ -71,6 +73,7 @@ class TagFilterModel(QAbstractItemModel):
             parentRow = next(i for i, n in enumerate(parentNode.tagList)
                              if n == curNode)
 
+        assert isinstance(curNode, TagFilterNode)
         return self.createIndex(parentRow, 0, curNode)
 
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
@@ -164,19 +167,24 @@ class TagFilterModel(QAbstractItemModel):
 
     def _dropNodePath(self, parentIndex: QModelIndex,
                       nodePaths: NodePaths_T, first: int = -1) -> bool:
-        nodeParent = parentIndex.internalPointer()
+        if parentIndex.isValid():
+            nodeParent = parentIndex.internalPointer()
+        else:
+            nodeParent = self.topNode
         assert isinstance(nodeParent, TagFilterSequenceNode)
 
         nodes = [self._getNodeFromNodePath(np) for np in nodePaths]
         indexes = [self._getIndexFromNode(node) for node in nodes]
-        indexesSorted = sorted(indexes, key=lambda i: -i.row())
-        for ind in indexesSorted:
+
+        for ind in sorted(indexes, key=lambda i: -i.row()):
             if ind.parent() == parentIndex and ind.row() < first:
                 first -= 1
-            self.remove(ind)
 
-        if first == -1:
+        self.removeIndexes(indexes)
+
+        if first <= -1:
             first = len(nodeParent.tagList)
+
         self.beginInsertRows(parentIndex, first, first + len(nodePaths) - 1)
         for pos, node in enumerate(nodes, first):
             nodeParent.insert(pos, node)
@@ -229,9 +237,8 @@ class TagFilterModel(QAbstractItemModel):
 
             firstNodeIndex = min(firstNodeIndex, nodeParent.tagList.index(ind.internalPointer()))
 
-        indexesSorted = sorted(indexes, key=lambda i: -i.row())
-        nodes = [self.remove(ind) for ind in indexesSorted]
-        assert None not in nodes
+        nodes = self.removeIndexes(indexes)
+        assert nodes
 
         self.beginInsertRows(indexParent, firstNodeIndex, firstNodeIndex)
         mergedNode = nodeType(tagList=nodes, parent=nodeParent)
@@ -240,10 +247,17 @@ class TagFilterModel(QAbstractItemModel):
 
         return self.index(firstNodeIndex, 0, indexParent)
 
-    def remove(self, curIndex: QModelIndex):
-        if self._isIndexInvalid(curIndex):
-            return
+    def removeIndexes(self, indexes: list[QModelIndex]) -> list[TagFilterNode]:
+        if self._isIndexInvalid(*indexes):
+            return []
 
+        removedNodes = []
+        indexesSorted = sorted(indexes, key=lambda i: -i.row())
+        for ind in indexesSorted:
+            removedNodes.append(self._remove(ind))
+        return removedNodes
+
+    def _remove(self, curIndex: QModelIndex):
         node: TagFilterNode = curIndex.internalPointer()
         parentNode = node.parent
         assert isinstance(parentNode, TagFilterSequenceNode)
@@ -276,7 +290,7 @@ class TagFilterModel(QAbstractItemModel):
 
         row = index.row()
         indexParent = index.parent()
-        self.remove(index)
+        self.removeIndexes([index])
 
         self.beginInsertRows(indexParent, row, row)
         if isinstance(node, TagFilterExcludeNode):
