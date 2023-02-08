@@ -171,18 +171,25 @@ class TagFilterModel(QAbstractItemModel):
             nodeParent = parentIndex.internalPointer()
         else:
             nodeParent = self.topNode
+            parentIndex = self.topLevelIndex
         assert isinstance(nodeParent, TagFilterSequenceNode)
+
+        if nodeParent == self.topNode and first == 1:
+            # special case when we place an item at the top level
+            first = -1
 
         nodes = [self._getNodeFromNodePath(np) for np in nodePaths]
         indexes = [self._getIndexFromNode(node) for node in nodes]
 
-        for ind in sorted(indexes, key=lambda i: -i.row()):
-            if ind.parent() == parentIndex and ind.row() < first:
-                first -= 1
+        if first > 0:
+            # find first position after indexes removal
+            for ind in sorted(indexes, key=lambda i: -i.row()):
+                if ind.parent() == parentIndex and ind.row() < first:
+                    first -= 1
 
         self.removeIndexes(indexes)
 
-        if first <= -1:
+        if first == -1:  # we append at the end
             first = len(nodeParent.tagList)
 
         self.beginInsertRows(parentIndex, first, first + len(nodePaths) - 1)
