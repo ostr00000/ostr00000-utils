@@ -23,7 +23,8 @@ class DropFileDialog(QFileDialog):
                 self.selectUrl(url)
                 formattedUrls.append(f'"{url.toLocalFile()}"')
             logger.debug(f"Selected files: {formattedUrls}")
-            self.selectFile(''.join(formattedUrls))
+            if len(formattedUrls) > 1:
+                self.selectFile(''.join(formattedUrls))
         else:
             super().dropEvent(dropEvent)
 
