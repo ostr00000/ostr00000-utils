@@ -1,6 +1,7 @@
 from typing import TypedDict
 
 from PyQt5.QtWidgets import QDialog, QMainWindow, QWidget
+
 from pyqt_utils.metaclass.geometry_save_dec import (
     SettingProtocol,
     loadGeometryDecFac,

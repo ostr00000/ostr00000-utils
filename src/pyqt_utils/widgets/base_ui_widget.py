@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from types import FrameType
 
 from PyQt5.QtWidgets import QWidget
+
 from pyqt_utils.metaclass.qt_meta import AbcQtMeta
 
 logger = logging.getLogger(__name__)

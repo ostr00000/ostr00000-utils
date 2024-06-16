@@ -6,6 +6,7 @@ import logging
 from PyQt5.QtCore import QItemSelectionModel, QModelIndex, QStringListModel, Qt
 from PyQt5.QtTest import QAbstractItemModelTester
 from PyQt5.QtWidgets import QCompleter, QDialog, QListWidget
+
 from pyqt_utils.qobjects.substring_validator import SubstringValidator
 from pyqt_utils.ui.tag_dialog_ui import Ui_TagDialog
 from pyqt_utils.widgets.base_ui_widget import BaseUiWidget

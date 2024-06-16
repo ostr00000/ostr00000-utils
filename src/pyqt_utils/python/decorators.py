@@ -7,6 +7,7 @@ from functools import partial, wraps
 from decorator import decorator as baseDecorator
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
+
 from pyqt_utils.python.logger_skip_frame import SkipFrameInModule
 
 SkipFrameInModule(__file__)

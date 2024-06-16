@@ -5,6 +5,7 @@ from collections.abc import Iterable
 
 from PyQt5.QtCore import QAbstractItemModel, QMimeData, QModelIndex, Qt, pyqtSignal
 from PyQt5.QtGui import QStandardItemModel
+
 from pyqt_utils.widgets.tag_filter.nodes import (
     TagFilterExcludeNode,
     TagFilterNode,

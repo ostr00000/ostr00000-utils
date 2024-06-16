@@ -4,6 +4,7 @@ from abc import abstractmethod
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QWidget
+
 from pyqt_utils.metaclass.qt_meta import AbcQtMeta
 from pyqt_utils.python.decorators import exceptionDec
 

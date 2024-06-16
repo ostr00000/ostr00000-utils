@@ -156,7 +156,7 @@ external = [
 extend-immutable-calls = ["PyQt5.QtCore.QModelIndex"]
 
 [tool.ruff.lint.isort]
-known-third-party = ["pyqt_utils", "pyqt_settings"]
+known-third-party = []
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
