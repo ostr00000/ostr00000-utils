@@ -1,7 +1,6 @@
 from typing import TypedDict
 
 from PyQt5.QtWidgets import QDialog, QMainWindow, QWidget
-from pyqt_utils.metaclass.base import BaseMeta
 from pyqt_utils.metaclass.geometry_save_dec import (
     SettingProtocol,
     loadGeometryDecFac,
@@ -9,15 +8,16 @@ from pyqt_utils.metaclass.geometry_save_dec import (
     saveGeometryDecFac,
     saveStateDecFac,
 )
+from pyqt_utils.metaclass.qt_meta import AbcQtMeta
 
 
 class KlassDict(TypedDict, total=False):
     klass: type
 
 
-class GeometrySaverMeta(BaseMeta):
+class GeometrySaverMeta(AbcQtMeta):
     def __new__(
-        mcs,
+        cls,
         name,
         bases,
         namespace,
@@ -27,22 +27,22 @@ class GeometrySaverMeta(BaseMeta):
         if not isinstance(settings, SettingProtocol):
             msg = "setting argument must be provided when class is created"
             raise TypeError(msg)
-        mcs._checkBases(bases, name)
+        cls._checkBases(bases, name)
 
         klassDict: KlassDict = {}
         facAttr = {'key': f'geometry/{saveName}', 'settings': settings}
 
         # normal init
-        __init__ = mcs._extractOrCreate(namespace, klassDict, '__init__')
+        __init__ = cls._extractOrCreate(namespace, klassDict, '__init__')
         namespace['__init__'] = loadGeometryDecFac(**facAttr)(__init__)
 
         # normal close
-        closeEvent = mcs._extractOrCreate(namespace, klassDict, 'closeEvent')
+        closeEvent = cls._extractOrCreate(namespace, klassDict, 'closeEvent')
         namespace['closeEvent'] = saveGeometryDecFac(**facAttr)(closeEvent)
 
         # dialog close
         if any(issubclass(base, QDialog) for base in bases):
-            done = mcs._extractOrCreate(namespace, klassDict, 'done')
+            done = cls._extractOrCreate(namespace, klassDict, 'done')
             namespace['done'] = saveGeometryDecFac(**facAttr)(done)
 
         # main window: init + close
@@ -53,7 +53,7 @@ class GeometrySaverMeta(BaseMeta):
                 namespace['closeEvent']
             )
 
-        createdClass = super().__new__(mcs, name, bases, namespace)
+        createdClass = super().__new__(cls, name, bases, namespace)
         klassDict['klass'] = createdClass
         return createdClass
 

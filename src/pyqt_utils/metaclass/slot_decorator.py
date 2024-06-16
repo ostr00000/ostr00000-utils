@@ -1,12 +1,11 @@
 import types
 
-from PyQt5.QtCore import QObject
-from pyqt_utils.metaclass.base import BaseMeta
+from pyqt_utils.metaclass.qt_meta import AbcQtMeta
 from pyqt_utils.python.decorators import entryExitDec, exceptionDec
 
 
-class SlotDecoratorMeta(BaseMeta, type(QObject)):
-    def __new__(mcs, name, bases, namespace):
+class SlotDecoratorMeta(AbcQtMeta):
+    def __new__(cls, name, bases, namespace, **kwargs):
         for funName, fun in namespace.items():
             if not isinstance(fun, types.FunctionType):
                 continue
@@ -16,4 +15,4 @@ class SlotDecoratorMeta(BaseMeta, type(QObject)):
 
             namespace[funName] = exceptionDec(entryExitDec(fun))
 
-        return super().__new__(mcs, name, bases, namespace)
+        return super().__new__(cls, name, bases, namespace, **kwargs)

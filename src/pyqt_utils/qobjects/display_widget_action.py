@@ -4,14 +4,14 @@ from abc import abstractmethod
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QWidget
-from pyqt_utils.metaclass.base import QtAbcMeta
+from pyqt_utils.metaclass.qt_meta import AbcQtMeta
 from pyqt_utils.python.decorators import exceptionDec
 
 logger = logging.getLogger(__name__)
 _emptyIcon = QIcon()
 
 
-class DisplayWidgetAction[W: QWidget](QAction, metaclass=QtAbcMeta):
+class DisplayWidgetAction[W: QWidget](QAction, metaclass=AbcQtMeta):
     def __init__(self, icon=_emptyIcon, text='', parent: QWidget | None = None):
         super().__init__(icon, text, parent)
         self._widget: W | None = None

@@ -1,26 +1,14 @@
 import inspect
+import logging
 import sys
-from abc import ABC, ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from types import FrameType
 
 from PyQt5.QtWidgets import QWidget
+from pyqt_utils.metaclass.qt_meta import AbcQtMeta
 
-QtMeta: type = type(QWidget)
-
-
-class AbcQtMeta(ABCMeta, QtMeta, type):
-    pass
-
-
-class AbcUiWidget(ABC):
-    @abstractmethod
-    def setupUi(self, widget: QWidget):
-        raise NotImplementedError
-
-    @abstractmethod
-    def retranslateUi(self, widget: QWidget):
-        raise NotImplementedError
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -37,7 +25,7 @@ class MissingSuperCall(Exception):
     pass
 
 
-class BaseUiWidget(QWidget, AbcUiWidget, ABC, metaclass=AbcQtMeta):
+class BaseWidget(QWidget, ABC, metaclass=AbcQtMeta):
     """Helper class for Qt generated class from `.ui` files.
 
     This class call `setupUi` and `retranslateUi` method.
@@ -71,8 +59,6 @@ class BaseUiWidget(QWidget, AbcUiWidget, ABC, metaclass=AbcQtMeta):
         self.__forceSuperCall(self.__pre_init__, *args, **kwargs)
         super().__init__(parent)
         self.__forceSuperCall(self.__pre_setup__, *args, **kwargs)
-        self.setupUi(self)
-        self.retranslateUi(self)
         self.__forceSuperCall(self.__post_init__, *args, **kwargs)
 
     def __forceSuperCall(self, method, *args, **kwargs):
@@ -111,3 +97,20 @@ class BaseUiWidget(QWidget, AbcUiWidget, ABC, metaclass=AbcQtMeta):
     def __post_init__(self, *args, **kwargs):
         """Connect signals, create advanced objects that use element from ui."""
         self.__post_init__executed__ = True
+
+
+class AbcUiWidget(ABC):
+    @abstractmethod
+    def setupUi(self, widget: QWidget):
+        raise NotImplementedError
+
+    @abstractmethod
+    def retranslateUi(self, widget: QWidget):
+        raise NotImplementedError
+
+
+class BaseUiWidget(AbcUiWidget, BaseWidget, ABC):
+    def __pre_setup__(self, *args, **kwargs):
+        super().__pre_setup__(*args, **kwargs)
+        self.setupUi(self)
+        self.retranslateUi(self)
