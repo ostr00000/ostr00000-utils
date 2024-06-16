@@ -5,7 +5,7 @@ build-backend = 'setuptools.build_meta'
 [project]
 name = 'ostr00000-utils'
 authors = [{ name = 'ostr00000' }]
-version = '0.3.0'
+version = '0.4.0'
 description = "Set of various frequently used functions, classes."
 
 requires-python = '>=3.10'
@@ -17,3 +17,163 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ['src']
 exclude = ['*tests*']
+
+
+[tool.black]
+skip-string-normalization = true
+
+[tool.mypy]
+files = './src/'
+warn_unused_configs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+
+[tool.pylint.basic]
+include-naming-hint = true
+attr-naming-style = "camelCase"
+function-naming-style = "camelCase"
+method-naming-style = "camelCase"
+# short names should be used for shot-living variables
+# https://github.com/PyCQA/pylint/issues/2018
+# variable-naming-style = "camelCase"
+variable-rgx = '([^\W\dA-Z][^\W_]*|__[^\W\dA-Z_]\w+__)$'
+# argument-naming-style = "camelCase"
+argument-rgx = '([^\W\dA-Z][^\W_]*|__[^\W\dA-Z_]\w+__)$'
+typealias-rgx = '^_{0,2}(?!T[A-Z]|Type)[A-Z]+[a-z]+(?:[A-Z][a-z]+)*(?:_t|_T)?$'
+
+[tool.pylint."messages control"]
+disable = [
+    # ### Convention
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring", # [fix toml formatting]
+    # ### Refactor
+    "too-few-public-methods",
+    # useless when there is inheritance https://github.com/PyCQA/pylint/issues/4352
+    'duplicate-code',
+    # ### Warning
+    # we debug expression in f-strings (`=`)
+    "logging-fstring-interpolation",
+    # tmp disable - should be fixed later
+    'fixme',
+    'too-many-ancestors',
+    'too-many-instance-attributes',
+    'too-many-arguments',
+]
+
+[tool.pyright]
+venvPath = ".."
+venv = "manager_env"
+reportIncompatibleMethodOverride = false
+
+[tool.pyright.defineConstant]
+# to correctly detect QT in `qtpy`
+PYQT5 = true
+PYQT6 = false
+PYSIDE2 = false
+PYSIDE6 = false
+
+[tool.ruff]
+# https://docs.astral.sh/ruff/configuration/
+target-version = "py312"
+unsafe-fixes = true
+
+[tool.ruff.lint]
+ignore-init-module-imports = true
+select = [
+    'F', # Pyflakes
+    'E', # pycodestyle: Error
+    'W', # pycodestyle: Warning
+    'C90', # mccabe
+    'I', # isort
+    # 'N', # pep8-naming # SKIP: we use camelCase style
+    'D', # pydocstyle
+    'UP', # pyupgrade
+    'YTT', # flake8-2020
+    # 'ANN', # flake8-annotations # SKIP: annotations are optional
+    'ASYNC', # flake8-async
+    'TRIO', # flake8-trio
+    'S', # flake8-bandit
+    'BLE', # flake8-blind-except
+    'FBT', # flake8-boolean-trap
+    'B', # flake8-bugbear
+    'A', # flake8-builtins
+    'COM', # flake8-commas
+    # 'CPY', # flake8-copyright # SKIP: copyright should be added once, in file
+    'C4', # flake8-comprehensions
+    'DTZ', # flake8-datetimez
+    'T10', # flake8-debugger
+    'DJ', # flake8-django
+    'EM', # flake8-errmsg
+    'EXE', # flake8-executable
+    'FA', # flake8-future-annotations
+    'ISC', # flake8-implicit-str-concat
+    'ICN', # flake8-import-conventions
+    'G', # flake8-logging-format
+    'INP', # flake8-no-pep420
+    'PIE', # flake8-pie # NOTE: not sure if this work?
+    'T20', # flake8-print
+    'PYI', # flake8-pyi
+    'PT', # flake8-pytest-style
+    # 'Q', # flake8-quotes # SKIP: we have rule: single for programmer, double for user
+    'RSE', # flake8-raise
+    'RET', # flake8-return
+    'SLF', # flake8-self
+    'SLOT', # flake8-slots
+    'SIM', # flake8-simplify
+    'TID', # flake8-tidy-imports # NOTE: in some dynamic packages, we want to ignore TID252
+    'TCH', # flake8-type-checking
+    'INT', # flake8-gettext # NOTE: not working for QT tr
+    # 'ARG', # flake8-unused-arguments # SKIP: this may be part of API, overridden in subclass
+    'PTH', # flake8-use-pathlib
+    'TD', # flake8-todos
+    'FIX', # flake8-fix me
+    'ERA', # eradicate
+    'PD', # pandas-vet
+    'PGH', # pygrep-hooks
+    'PL', # Pylint
+    'TRY', # tryceratops
+    'FLY', # flynt
+    'NPY', # NumPy-specific rules
+    'AIR', # Airflow
+    'PERF', # Perflint
+    'FURB', # refurb
+    'LOG', # flake8-logging
+    'RUF', # Ruff-specific rules
+]
+unfixable = [
+    'B', # flake8-bugbear
+    'F841', # remove unused variable
+    'ERA001', # commented-out-code
+    'RUF100', # unused-noqa # SKIP: better check manually why the `noqa` marker was placed
+]
+ignore = [
+    'D1', # Missing docstring # SKIP: this is not API library
+    'G004', # Checks for uses of f-strings to format logging messages. # SKIP: there is little performance gain and the code seems to be prettier
+    'COM812', # Checks for the absence of trailing commas. # SKIP: `black` adds it when needed
+]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["PyQt5.QtCore.QModelIndex"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["pyqt_utils", "pyqt_settings"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.pylint]
+max-args = 8
+
+[tool.tomlsort]
+spaces_indent_inline_array = 4
+trailing_comma_inline_array = true
+
+[tool.vulture]
+# ignore_names = []
+make_whitelist = true
+min_confidence = 80
+paths = ["src"]
+sort_by_size = true
