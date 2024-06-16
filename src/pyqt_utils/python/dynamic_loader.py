@@ -6,7 +6,7 @@ from types import ModuleType
 from typing import Iterator, TypeVar
 
 _moduleLogger = logging.getLogger(__name__)
-_T = TypeVar('_T', bound=type)
+_T = TypeVar('_T')
 
 
 def loadClassFromPackage(

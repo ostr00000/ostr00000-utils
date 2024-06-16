@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pickle
 from collections.abc import Iterable
-from typing import Protocol
+from typing import Protocol, Self
 
 
 class StrComparable(Protocol):
@@ -30,7 +30,7 @@ class TagFilterNode:
         return str(self)
 
     @classmethod
-    def deserialize(cls, data: bytes):
+    def deserialize(cls, data: bytes) -> Self:
         return pickle.loads(data)
 
     def serialize(self) -> bytes:

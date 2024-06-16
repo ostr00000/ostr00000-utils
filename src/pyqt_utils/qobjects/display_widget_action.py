@@ -1,5 +1,6 @@
 import logging
 from abc import abstractmethod
+from typing import Generic
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
@@ -11,25 +12,35 @@ from pyqt_utils.python.decorators import safeRun
 logger = logging.getLogger(__name__)
 
 
-class DisplayWidgetAction(QAction, metaclass=QtAbcMeta):
-    def __init__(self, icon=QIcon(), text='', parent: QWidget = None):
+class DisplayWidgetAction[W: QWidget](QAction, metaclass=QtAbcMeta):
+    def __init__(self, icon=QIcon(), text='', parent: QWidget | None = None):
         super().__init__(icon, text, parent)
-        self.widget: QWidget | None = None
+        self._widget: W | None = None
         self.triggered.connect(self.onTriggered)
+
+    @property
+    def widget(self) -> W:
+        if self._widget is None:
+            msg = (
+                "Widget is not initialized. "
+                "You may call `triggered` before this call."
+            )
+            raise TypeError(msg)
+        return self._widget
 
     @safeRun
     def onTriggered(self):
-        if self.widget is None:
-            self.widget = self.createWidget()
-            self.widget.destroyed.connect(self.onDestroyed)
-            self.widget.setAttribute(Qt.WA_DeleteOnClose)
-            self.widget.show()
+        if self._widget is None:
+            self._widget = self.createWidget()
+            self._widget.destroyed.connect(self.onDestroyed)
+            self._widget.setAttribute(Qt.WA_DeleteOnClose)
+            self._widget.show()
         else:
-            self.widget.raise_()
+            self._widget.raise_()
 
     def onDestroyed(self):
-        self.widget = None
+        self._widget = None
 
     @abstractmethod
-    def createWidget(self) -> QWidget:
+    def createWidget(self) -> W:
         raise NotImplementedError

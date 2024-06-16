@@ -1,12 +1,30 @@
 import logging
+import typing
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QDragEnterEvent, QDropEvent
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QWidget
 
 logger = logging.getLogger(__name__)
 
 
 class DropFileDialog(QFileDialog):
+    @typing.overload
+    def __init__(
+        self,
+        parent: QWidget,
+        f: typing.Union[Qt.WindowFlags, Qt.WindowType],
+    ) -> None: ...
+
+    @typing.overload
+    def __init__(
+        self,
+        parent: typing.Optional[QWidget] = ...,
+        caption: str = ...,
+        directory: str = ...,
+        filter: str = ...,  # noqa # shadows builtin
+    ) -> None: ...
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setAcceptDrops(True)
