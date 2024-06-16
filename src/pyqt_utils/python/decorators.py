@@ -2,7 +2,6 @@ import inspect
 import logging
 import sys
 import time
-import traceback
 from functools import partial, wraps
 
 from decorator import decorator as baseDecorator
@@ -14,7 +13,7 @@ SkipFrameInModule(__file__)
 _moduleLogger = logging.getLogger(__name__)
 
 
-def lessArgAttempt(fun, *args, **kw):
+def _lessArgAttempt(fun, *args, **kw):
     while True:
         try:
             return fun(*args, **kw)
@@ -25,7 +24,7 @@ def lessArgAttempt(fun, *args, **kw):
                 raise
 
 
-lessArgAttemptDec = baseDecorator(lessArgAttempt, kwsyntax=True)
+_lessArgAttemptDec = baseDecorator(_lessArgAttempt, kwsyntax=True)
 
 
 def decoratorForSlot(decoratorFun):
@@ -37,7 +36,7 @@ def decoratorForSlot(decoratorFun):
 
     `pyqtSlot` may not work in the following example:
     >>>        import decorator
-    >>>        from PyQt5.QtCore import pyqtSlot, pyqtSignal
+    >>>        from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject
     >>>
     >>>        @decorator.decorator
     >>>        def bazDec(fun, *args, **kwargs):
@@ -62,7 +61,7 @@ def decoratorForSlot(decoratorFun):
     dec = baseDecorator(decoratorFun, kwsyntax=True)  # decorator.decorate.fun
 
     def _decoratorForSlotInner(fun, *args, **kwargs):
-        return dec(lessArgAttemptDec(fun), *args, **kwargs)
+        return dec(_lessArgAttemptDec(fun), *args, **kwargs)
 
     return _decoratorForSlotInner
 
@@ -105,11 +104,11 @@ def _extractLogger(decObj):
 
 @_extractLogger
 @decoratorForSlot
-def exceptionDec(fun, logger=_moduleLogger, *args, **kwargs):
+def exceptionDec(fun, logger=_moduleLogger, level=logging.ERROR, *args, **kwargs):
     try:
         return fun(*args, **kwargs)
     except Exception:
-        logger.debug(str(traceback.format_exc()))
+        logger.log(level, "Unknown exception", exc_info=True)
         raise
 
 
@@ -130,15 +129,6 @@ def timeDec(fun, logger=_moduleLogger, *args, **kwargs):
         return fun(*args, **kwargs)
     finally:
         logger.debug(f"{fun.__name__}, execute time:{time.time() - start :.4f}s")
-
-
-@_extractLogger
-@decoratorForSlot
-def safeRun(fun, logger=_moduleLogger, *args, **kwargs):
-    try:
-        return fun(*args, **kwargs)
-    except Exception:
-        logger.exception(f"Unknown exception while running {fun}")
 
 
 @decoratorForSlot

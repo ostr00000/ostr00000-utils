@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QWidget
 from pyqt_utils.metaclass.base import QtAbcMeta
-from pyqt_utils.python.decorators import safeRun
+from pyqt_utils.python.decorators import exceptionDec
 
 logger = logging.getLogger(__name__)
 _emptyIcon = QIcon()
@@ -27,7 +27,7 @@ class DisplayWidgetAction[W: QWidget](QAction, metaclass=QtAbcMeta):
             raise TypeError(msg)
         return self._widget
 
-    @safeRun
+    @exceptionDec
     def onTriggered(self):
         if self._widget is None:
             self._widget = self.createWidget()
