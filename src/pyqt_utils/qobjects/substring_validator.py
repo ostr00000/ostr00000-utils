@@ -1,4 +1,4 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 from PyQt5.QtGui import QValidator
 
@@ -6,7 +6,7 @@ from PyQt5.QtGui import QValidator
 class SubstringValidator(QValidator):
     def __init__(self, possibleValues: Iterable[str] = (), parent=None):
         super().__init__(parent)
-        self._possibleValues = []
+        self._possibleValues: list[str] = []
         self.setPossibleValues(possibleValues)
 
     def setPossibleValues(self, possibleValues: Iterable[str] = ()):
@@ -22,16 +22,12 @@ class SubstringValidator(QValidator):
         return QValidator.Invalid, inputText, pos
 
     def fixup(self, inputText: str) -> str:
-        remaining = self._getRemainingOptions(inputText)
-        if len(remaining) == 1:
-            return remaining[0]
-        else:
-            return inputText
+        match self._getRemainingOptions(inputText):
+            case [onlyOne]:
+                return onlyOne
+            case _:
+                return inputText
 
-    def _getRemainingOptions(self, inputText: str):
+    def _getRemainingOptions(self, inputText: str) -> list[str]:
         size = len(inputText)
-        remainingOptions = []
-        for p in self._possibleValues:
-            if p[:size] == inputText:
-                remainingOptions.append(p)
-        return remainingOptions
+        return [p for p in self._possibleValues if p[:size] == inputText]

@@ -3,11 +3,14 @@ import logging
 import pickle
 from collections.abc import Iterable
 
-from PyQt5.QtCore import QModelIndex, QAbstractItemModel, Qt, QMimeData, pyqtSignal
+from PyQt5.QtCore import QAbstractItemModel, QMimeData, QModelIndex, Qt, pyqtSignal
 from PyQt5.QtGui import QStandardItemModel
-
-from pyqt_utils.widgets.tag_filter.nodes import TagFilterNode, TagFilterSequenceNode, \
-    TagFilterOrNode, TagFilterExcludeNode
+from pyqt_utils.widgets.tag_filter.nodes import (
+    TagFilterExcludeNode,
+    TagFilterNode,
+    TagFilterOrNode,
+    TagFilterSequenceNode,
+)
 
 logger = logging.getLogger(__name__)
 NodePath_T = tuple[int, ...]
@@ -17,42 +20,60 @@ NodePaths_T = list[NodePath_T]
 class TagFilterModel(QAbstractItemModel):
     failureCause = pyqtSignal(str)
 
+    @classmethod
+    def _checkType[T](cls, var, expectedType: type[T] = TagFilterNode) -> T:
+        if not isinstance(var, expectedType):
+            msg = f"Expected {expectedType}, got {type(var)}"
+            raise TypeError(msg)
+        return var
+
+    @classmethod
+    def _getFromInternalPointer[
+        T
+    ](cls, index: QModelIndex, expectedType: type[T] = TagFilterNode) -> T:
+        return cls._checkType(index.internalPointer(), expectedType)
+
     def __init__(self, topNode: TagFilterOrNode = None):
         super().__init__()
         if topNode is None:
             self.topNode = TagFilterOrNode()
         else:
             self.topNode = copy.deepcopy(topNode)
-        assert isinstance(self.topNode, TagFilterNode)
+
+        self._checkType(self.topNode)
         self.topLevelIndex = self.createIndex(0, 0, self.topNode)
         self.failureCause.connect(logger.debug)
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
+    def headerData(
+        self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole
+    ):
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
             return [self.tr("Tag")][section]
+        return None
 
     def rowCount(self, curIndex: QModelIndex = QModelIndex()) -> int:
         if not curIndex.isValid():
             return 1
 
-        node: TagFilterNode = curIndex.internalPointer()
+        node = self._getFromInternalPointer(curIndex)
         return len(node)
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return 1
 
-    def index(self, row: int, column: int, parent: QModelIndex = QModelIndex()) -> QModelIndex:
+    def index(
+        self, row: int, column: int, parent: QModelIndex = QModelIndex()
+    ) -> QModelIndex:
         if not self.hasIndex(row, column, parent):
             return QModelIndex()
 
         if parent.isValid():
-            parentNode: TagFilterNode = parent.internalPointer()
-            assert isinstance(parentNode, TagFilterSequenceNode)
+            parentNode = self._getFromInternalPointer(parent, TagFilterSequenceNode)
             curNode = parentNode.tagList[row]
         else:
             curNode = self.topNode
 
-        assert isinstance(curNode, TagFilterNode)
+        self._checkType(curNode)
         return self.createIndex(row, column, curNode)
 
     def parent(self, child: QModelIndex) -> QModelIndex:
@@ -69,16 +90,17 @@ class TagFilterModel(QAbstractItemModel):
         if (parentNode := curNode.parent) is None:
             parentRow = 0
         else:
-            assert isinstance(parentNode, TagFilterSequenceNode)
-            parentRow = next(i for i, n in enumerate(parentNode.tagList)
-                             if n == curNode)
+            parentNode = self._checkType(parentNode, TagFilterSequenceNode)
+            parentRow = next(
+                i for i, n in enumerate(parentNode.tagList) if n == curNode
+            )
 
-        assert isinstance(curNode, TagFilterNode)
+        self._checkType(curNode)
         return self.createIndex(parentRow, 0, curNode)
 
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
         if not index.isValid():
-            return
+            return None
 
         match role:
             case Qt.DisplayRole | Qt.ToolTipRole:
@@ -126,7 +148,7 @@ class TagFilterModel(QAbstractItemModel):
                 if nodeParent in allNodes:
                     break
 
-                assert isinstance(nodeParent, TagFilterSequenceNode)
+                nodeParent = self._checkType(nodeParent, TagFilterSequenceNode)
                 nodePath.append(nodeParent.tagList.index(prevNode))
                 prevNode = nodeParent
 
@@ -135,19 +157,28 @@ class TagFilterModel(QAbstractItemModel):
 
         return sorted(nodePathToIndex)
 
-    def dropMimeData(self, mimeData: QMimeData, action: Qt.DropAction,
-                     row: int, column: int, parentIndex: QModelIndex) -> bool:
+    def dropMimeData(
+        self,
+        mimeData: QMimeData,
+        action: Qt.DropAction,
+        row: int,
+        column: int,
+        parentIndex: QModelIndex,
+    ) -> bool:
         if action == Qt.CopyAction and mimeData.hasFormat(self.QT_MIME):
             return self._dropSimpleData(parentIndex, mimeData, row)
 
         if action == Qt.MoveAction and mimeData.hasFormat(self.TAG_FILTER_MIME):
             byteObj = mimeData.data(self.TAG_FILTER_MIME).data()
-            nodePaths: NodePaths_T = pickle.loads(byteObj)
+            # SKIP: TODO [P2]: temporary ignored, maybe this could be a json?
+            nodePaths: NodePaths_T = pickle.loads(byteObj)  # noqa: S301
             return self._dropNodePath(parentIndex, nodePaths, row)
 
         return False
 
-    def _dropSimpleData(self, parentIndex: QModelIndex, mimeData: QMimeData, row: int) -> bool:
+    def _dropSimpleData(
+        self, parentIndex: QModelIndex, mimeData: QMimeData, row: int
+    ) -> bool:
         model = QStandardItemModel()
         model.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex())
         if model.columnCount() != 1:
@@ -165,14 +196,15 @@ class TagFilterModel(QAbstractItemModel):
 
         return True
 
-    def _dropNodePath(self, parentIndex: QModelIndex,
-                      nodePaths: NodePaths_T, first: int = -1) -> bool:
+    def _dropNodePath(
+        self, parentIndex: QModelIndex, nodePaths: NodePaths_T, first: int = -1
+    ) -> bool:
         if parentIndex.isValid():
             nodeParent = parentIndex.internalPointer()
         else:
             nodeParent = self.topNode
             parentIndex = self.topLevelIndex
-        assert isinstance(nodeParent, TagFilterSequenceNode)
+        nodeParent = self._checkType(nodeParent, TagFilterSequenceNode)
 
         if nodeParent == self.topNode and first == 1:
             # special case when we place an item at the top level
@@ -201,11 +233,11 @@ class TagFilterModel(QAbstractItemModel):
     def _getNodeFromNodePath(self, nodePath: NodePath_T):
         node = self.topNode
         for p in nodePath:
-            assert isinstance(node, TagFilterSequenceNode)
+            node = self._checkType(node, TagFilterSequenceNode)
             node = node.tagList[p]
         return node
 
-    def addSimple(self, text: str, parent: QModelIndex, row: int = None) -> bool:
+    def addSimple(self, text: str, parent: QModelIndex, row: int | None = None) -> bool:
         if parent.isValid():
             node = parent.internalPointer()
         else:
@@ -218,7 +250,8 @@ class TagFilterModel(QAbstractItemModel):
 
         for t in node.tagList:
             if t.tagName == text:
-                self.failureCause.emit(self.tr("Tag with name: {} already exist").format(text))
+                msg = self.tr("Tag with name: {} already exist")
+                self.failureCause.emit(msg.format(text))
                 return False
 
         if row is None:
@@ -229,10 +262,11 @@ class TagFilterModel(QAbstractItemModel):
         self.endInsertRows()
         return True
 
-    def mergeTags(self, nodeType: type[TagFilterSequenceNode], indexes: list[QModelIndex]
-                  ) -> QModelIndex | None:
+    def mergeTags(
+        self, nodeType: type[TagFilterSequenceNode], indexes: list[QModelIndex]
+    ) -> QModelIndex | None:
         if self._isIndexInvalid(*indexes):
-            return
+            return None
 
         indexParent = indexes[0].parent()
         nodeParent: TagFilterSequenceNode = indexParent.internalPointer()
@@ -240,12 +274,15 @@ class TagFilterModel(QAbstractItemModel):
         for ind in indexes:
             if ind.parent() != indexParent:
                 self.failureCause.emit(self.tr("Indexes have different parents"))
-                return
+                return None
 
-            firstNodeIndex = min(firstNodeIndex, nodeParent.tagList.index(ind.internalPointer()))
+            index = nodeParent.tagList.index(ind.internalPointer())
+            firstNodeIndex = min(firstNodeIndex, index)
 
         nodes = self.removeIndexes(indexes)
-        assert nodes
+        if not nodes:
+            msg = "Cannot remove indexes - returned empty list"
+            raise ValueError(msg)
 
         self.beginInsertRows(indexParent, firstNodeIndex, firstNodeIndex)
         mergedNode = nodeType(tagList=nodes, parent=nodeParent)
@@ -258,16 +295,12 @@ class TagFilterModel(QAbstractItemModel):
         if self._isIndexInvalid(*indexes):
             return []
 
-        removedNodes = []
-        indexesSorted = sorted(indexes, key=lambda i: -i.row())
-        for ind in indexesSorted:
-            removedNodes.append(self._remove(ind))
-        return removedNodes
+        sortedIndexes = sorted(indexes, key=lambda i: -i.row())
+        return [self._remove(ind) for ind in sortedIndexes]
 
     def _remove(self, curIndex: QModelIndex):
-        node: TagFilterNode = curIndex.internalPointer()
-        parentNode = node.parent
-        assert isinstance(parentNode, TagFilterSequenceNode)
+        node = self._getFromInternalPointer(curIndex)
+        parentNode = self._checkType(node.parent, TagFilterSequenceNode)
 
         self.beginRemoveRows(curIndex.parent(), curIndex.row(), curIndex.row())
         parentNode.remove(node)
@@ -289,11 +322,10 @@ class TagFilterModel(QAbstractItemModel):
 
     def negate(self, index: QModelIndex):
         if self._isIndexInvalid(index):
-            return
+            return None
 
-        node: TagFilterNode = index.internalPointer()
-        parentNode = node.parent
-        assert isinstance(parentNode, TagFilterSequenceNode)
+        node = self._getFromInternalPointer(index)
+        parentNode = self._checkType(node.parent, TagFilterSequenceNode)
 
         row = index.row()
         indexParent = index.parent()

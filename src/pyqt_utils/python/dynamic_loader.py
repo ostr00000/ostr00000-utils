@@ -1,9 +1,10 @@
 import importlib
 import logging
 import pkgutil
+from collections.abc import Iterator
 from inspect import isabstract, isclass
 from types import ModuleType
-from typing import Iterator, TypeVar
+from typing import TypeVar
 
 _moduleLogger = logging.getLogger(__name__)
 _T = TypeVar('_T')
@@ -32,20 +33,22 @@ def loadClassFromPackage(
             mod: ModuleType = importlib.import_module(moduleInfo.name)
         except SyntaxError:
             raise
-        except Exception as exc:
-            logger.exception(exc)
-        else:
-            for name, maybeClass in mod.__dict__.items():
-                if filterPrivate and name.startswith('_'):
-                    continue
-                if not isclass(maybeClass):
-                    continue
-                if isabstract(maybeClass):
-                    continue
-                if maybeClass.__module__ != moduleInfo.name:
-                    continue
-                if not issubclass(maybeClass, requiredSubclass):
-                    continue
+        except Exception:
+            msg = f"Error when loading module {moduleInfo.name}"
+            logger.exception(msg)
+            return
 
-                logger.debug(f"Found {maybeClass}")
-                yield maybeClass
+        for name, maybeClass in mod.__dict__.items():
+            if filterPrivate and name.startswith('_'):
+                continue
+            if not isclass(maybeClass):
+                continue
+            if isabstract(maybeClass):
+                continue
+            if maybeClass.__module__ != moduleInfo.name:
+                continue
+            if not issubclass(maybeClass, requiredSubclass):
+                continue
+
+            logger.debug(f"Found {maybeClass}")
+            yield maybeClass

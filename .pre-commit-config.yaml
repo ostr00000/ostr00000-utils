@@ -1,13 +1,6 @@
 default_language_version:
   python: python3.12
 
-files: |  # python regex
-  (?x)      # verbose regex
-  ^(?:      # start of filename
-    src/.*  # all working python
-    |
-    [^/]+   # top level files
-  )$        # end of filename
 
 exclude: |  # python regex
   (?x)        # verbose regex
@@ -15,24 +8,35 @@ exclude: |  # python regex
     .*_ui.py  # Qt generated files
   )$          # end of filename
 
+
 repos:
   - repo: meta
     hooks:
       - id: identity
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: check-added-large-files
-      - id: check-merge-conflict
-      - id: check-case-conflict
-      - id: check-yaml
-      - id: check-toml
+        args: [ '--maxkb=500' ]
+        exclude: .*\.(qgs|xml)
       - id: check-ast
-      - id: debug-statements
-      - id: end-of-file-fixer
-      - id: mixed-line-ending
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
       - id: trailing-whitespace
+        exclude: .*\.(xml)
+      - id: end-of-file-fixer
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.16
@@ -51,7 +55,6 @@ repos:
         name: typos-diff
         args:
           - --diff
-        verbose: true
       - id: typos
         name: typos-fix
 
@@ -80,11 +83,6 @@ repos:
       - id: auto-walrus
         args: [ --line-length=89 ]
 
-  - repo: https://github.com/psf/black
-    rev: 24.3.0
-    hooks:
-      - id: black
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.3.3
     hooks:
@@ -100,15 +98,20 @@ repos:
         name: ruff-auto-fix
         args: [ --exit-non-zero-on-fix, --fix, --statistics]
 
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+      - id: black
+
   - repo: https://github.com/jendrikseipp/vulture
     rev: v2.11
     hooks:
       - id: vulture
 
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.354
-    hooks:
-      - id: pyright
+#  - repo: https://github.com/RobertCraigie/pyright-python
+#    rev: v1.1.354
+#    hooks:
+#      - id: pyright
 
 #  - repo: local
 #    hooks:

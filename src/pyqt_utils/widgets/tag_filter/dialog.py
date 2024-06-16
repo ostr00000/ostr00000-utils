@@ -3,28 +3,33 @@ from __future__ import annotations
 import copy
 import logging
 
-from PyQt5.QtCore import QModelIndex, Qt, QItemSelectionModel, QStringListModel
+from PyQt5.QtCore import QItemSelectionModel, QModelIndex, QStringListModel, Qt
 from PyQt5.QtTest import QAbstractItemModelTester
-from PyQt5.QtWidgets import QDialog, QListWidget, QCompleter
-
+from PyQt5.QtWidgets import QCompleter, QDialog, QListWidget
 from pyqt_utils.qobjects.substring_validator import SubstringValidator
 from pyqt_utils.ui.tag_dialog_ui import Ui_TagDialog
-from pyqt_utils.widgets.base_widget import BaseWidget
+from pyqt_utils.widgets.base_ui_widget import BaseUiWidget
 from pyqt_utils.widgets.tag_filter.model import TagFilterModel
-from pyqt_utils.widgets.tag_filter.nodes import TagFilterOrNode, TagFilterAndNode, \
-    TagFilterSequenceNode
+from pyqt_utils.widgets.tag_filter.nodes import (
+    TagFilterAndNode,
+    TagFilterOrNode,
+    TagFilterSequenceNode,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class TagFilterDialog(Ui_TagDialog, BaseWidget, QDialog):
+class TagFilterDialog(Ui_TagDialog, BaseUiWidget, QDialog):
     _activeListWidget: None | QListWidget
     _possibleValues: list[str]
 
-    def __post_init__(self, *args,
-                      existingNode: TagFilterOrNode = None,
-                      possibleValues: list[str] = (),
-                      **kwargs):
+    def __post_init__(
+        self,
+        *args,
+        existingNode: TagFilterOrNode = None,
+        possibleValues: list[str] = (),
+        **kwargs,
+    ):
         super().__post_init__(*args, **kwargs)
         self.setPossibleValues(possibleValues)
 
@@ -33,7 +38,8 @@ class TagFilterDialog(Ui_TagDialog, BaseWidget, QDialog):
         self._tagModel.rowsMoved.connect(self.onIncludeRowsMoved)
         self._tagModel.dataChanged.connect(self.onIncludeRowsMoved)
         self._testModel = QAbstractItemModelTester(
-            self._tagModel, QAbstractItemModelTester.FailureReportingMode.Warning, self)
+            self._tagModel, QAbstractItemModelTester.FailureReportingMode.Warning, self
+        )
         self.expressionTree.setModel(self._tagModel)
         self.expressionTree.expandAll()
         self.expressionTree.setAcceptDrops(True)
@@ -59,15 +65,20 @@ class TagFilterDialog(Ui_TagDialog, BaseWidget, QDialog):
             model: QStringListModel = comp.model()
             model.setStringList(values)
 
-        if validator := self.searchLineEdit.validator():
-            if isinstance(validator, SubstringValidator):
-                validator.setPossibleValues(self._possibleValues)
+        if isinstance(validator := self.searchLineEdit.validator(), SubstringValidator):
+            validator.setPossibleValues(self._possibleValues)
 
     def onIncludeRowsInserted(self, parent: QModelIndex, first: int, last: int):
         self._expandView(parent, first, last)
 
-    def onIncludeRowsMoved(self, _parent: QModelIndex, start: int, end: int,
-                           destination: QModelIndex, row: int):
+    def onIncludeRowsMoved(
+        self,
+        _parent: QModelIndex,
+        start: int,
+        end: int,
+        destination: QModelIndex,
+        row: int,
+    ):
         self._expandView(destination, row, end - start)
 
     def _expandView(self, parent: QModelIndex, first: int, last: int):

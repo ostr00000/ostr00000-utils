@@ -13,16 +13,18 @@ class DropFileDialog(QFileDialog):
     def __init__(
         self,
         parent: QWidget,
-        f: typing.Union[Qt.WindowFlags, Qt.WindowType],
+        f: Qt.WindowFlags | Qt.WindowType,
     ) -> None: ...
 
+    # noinspection PyShadowingBuiltins
     @typing.overload
     def __init__(
         self,
-        parent: typing.Optional[QWidget] = ...,
-        caption: str = ...,
-        directory: str = ...,
-        filter: str = ...,  # noqa # shadows builtin
+        parent: QWidget | None = ...,
+        caption: str = ...,  # noqa: F841 # SKIP: false positive in vulture
+        directory: str = ...,  # noqa: F841 # SKIP: false positive in vulture
+        # SKIP: shadows builtin, but this defined in Qt API
+        filter: str = ...,  # noqa: A002
     ) -> None: ...
 
     def __init__(self, *args, **kwargs):

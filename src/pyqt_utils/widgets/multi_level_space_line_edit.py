@@ -1,5 +1,4 @@
-from PyQt5.QtWidgets import QLineEdit, QHBoxLayout, QScrollArea, QVBoxLayout
-
+from PyQt5.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QVBoxLayout
 from pyqt_utils.widgets.space_line_edit import SpaceLineEdit
 
 
@@ -21,7 +20,8 @@ class MultiLevelSpaceLineEdit(SpaceLineEdit):
         widgetToLayout: dict[QLineEdit, QHBoxLayout] = {
             lay.itemAt(i).widget(): lay
             for lay in self._hLayouts
-            for i in range(lay.count())}
+            for i in range(lay.count())
+        }
 
         for w, lay in widgetToLayout.items():
             if w and w not in self._lineEdits:
@@ -49,9 +49,9 @@ class MultiLevelSpaceLineEdit(SpaceLineEdit):
                     oldItem = currentLayout.replaceWidget(item.widget(), le)
                     currentLayout.addItem(oldItem)
 
-        for oldLayout in self._hLayouts[layoutCount + 1:]:
+        for oldLayout in self._hLayouts[layoutCount + 1 :]:
             oldLayout.deleteLater()
-        del self._hLayouts[layoutCount + 1:]
+        del self._hLayouts[layoutCount + 1 :]
 
 
 class ScrollSpaceLineEdit(QScrollArea):

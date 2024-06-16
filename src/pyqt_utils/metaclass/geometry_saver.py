@@ -1,101 +1,85 @@
-from typing import Protocol, Any, runtime_checkable
+from typing import TypedDict
 
-from PyQt5.QtWidgets import QWidget, QDialog, QMainWindow
-from decorator import decorator
-
+from PyQt5.QtWidgets import QDialog, QMainWindow, QWidget
 from pyqt_utils.metaclass.base import BaseMeta
+from pyqt_utils.metaclass.geometry_save_dec import (
+    SettingProtocol,
+    loadGeometryDecFac,
+    loadStateDecFac,
+    saveGeometryDecFac,
+    saveStateDecFac,
+)
 
 
-@runtime_checkable
-class SettingProtocol(Protocol):
-    def value(self, key: str, default: Any = None) -> Any: ...
-
-    def setValue(self, key: str, value: Any): ...
-
-    def sync(self): ...
-
-
-@decorator
-def saveGeometryDecFac(fun, key: str = None, settings: SettingProtocol = None,
-                       *args, **kwargs):
-    self: QWidget = args[0]
-    settings.setValue(key, self.saveGeometry())
-    settings.sync()
-    return fun(*args, **kwargs)
-
-
-@decorator
-def loadGeometryDecFac(fun, key: str = None, settings: SettingProtocol = None,
-                       *args, **kwargs):
-    ret = fun(*args, **kwargs)
-    geom = settings.value(key, None)
-    if geom:
-        self: QWidget = args[0]
-        self.restoreGeometry(geom)
-    return ret
-
-
-@decorator
-def saveStateDecFac(fun, key: str = None, settings: SettingProtocol = None,
-                    *args, **kwargs):
-    self: QMainWindow = args[0]
-    settings.setValue(key, self.saveState())
-    settings.sync()
-    return fun(*args, **kwargs)
-
-
-@decorator
-def loadStateDecFac(fun, key: str = None, settings: SettingProtocol = None,
-                    *args, **kwargs):
-    ret = fun(*args, **kwargs)
-    state = settings.value(key, None)
-    if state:
-        self: QMainWindow = args[0]
-        self.restoreState(state)
-    return ret
+class KlassDict(TypedDict, total=False):
+    klass: type
 
 
 class GeometrySaverMeta(BaseMeta):
-    def __new__(mcs, name, bases, attrs,
-                settings: SettingProtocol = None,
-                saveName: str = None):
+    def __new__(
+        mcs,
+        name,
+        bases,
+        namespace,
+        settings: SettingProtocol = None,
+        saveName: str = "geometry",
+    ):
+        if not isinstance(settings, SettingProtocol):
+            msg = "setting argument must be provided when class is created"
+            raise TypeError(msg)
+        mcs._checkBases(bases, name)
 
-        assert isinstance(settings, SettingProtocol), \
-            "setting argument must be provided when class is created"
-        assert any(issubclass(base, QWidget) for base in bases)
-        if not saveName:
-            saveName = name
-
-        try:
-            closeEvent = attrs['closeEvent']
-        except KeyError:
-            def closeEvent(self, event):
-                return super(obj, self).closeEvent(event)
-
-        try:
-            __init__ = attrs['__init__']
-        except KeyError:
-            def __init__(self, *args, **kwargs):
-                super(obj, self).__init__(*args, **kwargs)
-
+        klassDict: KlassDict = {}
         facAttr = {'key': f'geometry/{saveName}', 'settings': settings}
-        saveGeometryDec = saveGeometryDecFac(**facAttr)
-        attrs['closeEvent'] = saveGeometryDec(closeEvent)
-        attrs['__init__'] = loadGeometryDecFac(**facAttr)(__init__)
 
-        if QDialog in bases:
-            try:
-                accept = attrs['accept']
-            except KeyError:
-                def accept(self):
-                    return super(obj, self).accept()
+        # normal init
+        __init__ = mcs._extractOrCreate(namespace, klassDict, '__init__')
+        namespace['__init__'] = loadGeometryDecFac(**facAttr)(__init__)
 
-            attrs['accept'] = saveGeometryDec(accept)
+        # normal close
+        closeEvent = mcs._extractOrCreate(namespace, klassDict, 'closeEvent')
+        namespace['closeEvent'] = saveGeometryDecFac(**facAttr)(closeEvent)
 
-        if QMainWindow in bases:
+        # dialog close
+        if any(issubclass(base, QDialog) for base in bases):
+            done = mcs._extractOrCreate(namespace, klassDict, 'done')
+            namespace['done'] = saveGeometryDecFac(**facAttr)(done)
+
+        # main window: init + close
+        if any(issubclass(base, QMainWindow) for base in bases):
             facAttr['key'] = f'state/{saveName}'
-            attrs['__init__'] = loadStateDecFac(**facAttr)(attrs['__init__'])
-            attrs['closeEvent'] = saveStateDecFac(**facAttr)(attrs['closeEvent'])
+            namespace['__init__'] = loadStateDecFac(**facAttr)(namespace['__init__'])
+            namespace['closeEvent'] = saveStateDecFac(**facAttr)(
+                namespace['closeEvent']
+            )
 
-        obj = super().__new__(mcs, name, bases, attrs)
-        return obj
+        createdClass = super().__new__(mcs, name, bases, namespace)
+        klassDict['klass'] = createdClass
+        return createdClass
+
+    @classmethod
+    def _checkBases(cls, bases: tuple[type], name: str):
+        if not any(issubclass(base, QWidget) for base in bases):
+            msg = (
+                f"Wrong bases class {','.join(str(b) for b in bases)} "
+                f"- cannot use save position decorator on {name}"
+            )
+            raise TypeError(msg)
+
+    @classmethod
+    def _extractOrCreate(cls, namespace: dict, klassDict: KlassDict, functionName: str):
+        if orgFun := namespace.get(functionName):
+            return orgFun
+
+        def generated(self, *args, **kwargs):
+            kl = klassDict.get('klass')
+            if kl is None:
+                msg = "Cannot use generated method when klass is not created yet!"
+                raise KeyError(msg)
+
+            sup = super(kl, self)  # pyright: ignore[reportArgumentType]
+            fun = getattr(sup, functionName)
+            return fun(*args, **kwargs)
+
+        generated.__doc__ = f"Function `{functionName}` generated by {cls.__name__}."
+        return generated

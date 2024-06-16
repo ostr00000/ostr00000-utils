@@ -1,56 +1,80 @@
 import logging
 import re
 import shlex
-from subprocess import Popen, PIPE
+from collections.abc import Callable
+from subprocess import PIPE, Popen
 from threading import Thread
-from typing import Callable, overload
+from typing import overload
 
 logger = logging.getLogger(__name__)
+type StrPopen = Popen[str]
 
 
 def _PopenWrapper(*args, shell=True, **kwargs):
     logger.info(f"Run command {args}")
-    process = Popen(*args, shell=shell, stdout=PIPE, stderr=PIPE, encoding='UTF-8', **kwargs)
-    logger.info(shlex.join(process.args) if isinstance(process.args, list) else process.args)
+    process = Popen(
+        *args,
+        # SKIP: this may be configured by user, so there is indeed some kind of risk
+        shell=shell,  # noqa: S603
+        stdout=PIPE,
+        stderr=PIPE,
+        encoding='UTF-8',
+        **kwargs,
+    )
+
+    match process.args:
+        case str(strArgs):
+            pass
+        case list(listArgs):
+            strArgs = shlex.join(listArgs)
+        case _:
+            msg = f"Unknown type of process.args: {type(process.args)}"
+            raise TypeError(msg)
+
+    logger.info(strArgs)
     return process
 
 
 class OutputReader:
-    def __init__(self, process: Popen, **kwargs):
+    def __init__(self, process: StrPopen, **kwargs):
         self.originalProcess = process
         self.outputThread = self._startThread(process, target=self._readOutput)
         self.stderrThread = self._startThread(process, target=self._readError)
 
     @staticmethod
-    def _startThread(process: Popen, target: Callable[[Popen], None]):
-        th = Thread(target=target, name=f"{process.args}.{target.__name__}", args=(process,))
+    def _startThread(process: StrPopen, target: Callable[[StrPopen], None]):
+        th = Thread(
+            target=target,
+            name=f"{process.args}.{target.__name__}",
+            args=(process,),
+        )
         th.daemon = True
         th.start()
         return th
 
-    def _readOutput(self, process: Popen):
+    def _readOutput(self, process: StrPopen):
         for line in process.stdout.readlines():
-            line = line.strip()
-            if not line:
+            if not (strippedLine := line.strip()):
                 continue
-            self.processOutput(line)
+            self.processOutput(strippedLine)
 
     def processOutput(self, line: str):
         pass
 
-    def _readError(self, process: Popen):
+    def _readError(self, process: StrPopen):
         for line in process.stderr.readlines():
-            line = line.strip()
-            if not line:
+            if not (strippedLine := line.strip()):
                 continue
-            self.processError(line)
+            self.processError(strippedLine)
 
     def processError(self, line: str):
         pass
 
 
 class OutputReaderLogger(OutputReader):
-    def __init__(self, process: Popen, logHandlers: list[logging.Handler] = (), **kwargs):
+    def __init__(
+        self, process: StrPopen, logHandlers: list[logging.Handler] = (), **kwargs
+    ):
         self.log = logging.getLogger(f'{__name__}.{type(self).__name__}.{process.pid}')
         self.log.setLevel(logging.DEBUG)
         for h in logHandlers:
@@ -58,9 +82,9 @@ class OutputReaderLogger(OutputReader):
 
         super().__init__(process, **kwargs)
 
-    def _readOutput(self, process: Popen):
+    def _readOutput(self, process: StrPopen):
         super()._readOutput(process)
-        self.log.info(f"Proces finished {process.pid=} {process.returncode=}")
+        self.log.info(f"Process finished {process.pid=} {process.returncode=}")
 
     def processOutput(self, line: str):
         self.log.debug(line)
@@ -94,17 +118,17 @@ class PermissionFixReader(OutputReaderLogger):
         self.stderrThread = self._startThread(process, target=self._readError)
 
     def _getWorkingDir(self) -> str | None:
-        args = shlex.split(self.originalProcess.args)
+        match shlex.split(self.originalProcess.args):
+            case ['cd', workingDir, _rest]:
+                return workingDir
 
-        if len(args) < 3:
-            self.log.error("Cannot parse command")
-            return None
+            case [_notCd, _workingDir, _rest]:
+                self.log.error("Command do not start with `cd` command")
+                return None
 
-        if args[0] != 'cd':
-            self.log.error("Command do not contain 'cd'")
-            return None
-
-        return args[1]
+            case _:
+                self.log.error("Cannot parse command")
+                return None
 
     def _fixPermission(self, cmd: str):
         permissionProcess = _PopenWrapper(cmd)
@@ -116,28 +140,37 @@ class PermissionFixReader(OutputReaderLogger):
 
 
 @overload
-def runProcessAsync(cmd: list[str], *args, shell=False,
-                    logHandlers: list[logging.Handler] = (),
-                    reader: type[OutputReader] | None = PermissionFixReader, **kwargs):
-    ...
+def runProcessAsync(
+    cmd: list[str],
+    *args,
+    shell=False,
+    logHandlers: list[logging.Handler] = (),
+    reader: type[OutputReader] | None = PermissionFixReader,
+    **kwargs,
+): ...
 
 
 @overload
-def runProcessAsync(cmd: str, *args, shell=True,
-                    logHandlers: list[logging.Handler] = (),
-                    reader: type[OutputReader] | None = PermissionFixReader, **kwargs):
-    ...
+def runProcessAsync(
+    cmd: str,
+    *args,
+    shell=True,
+    logHandlers: list[logging.Handler] = (),
+    reader: type[OutputReader] | None = PermissionFixReader,
+    **kwargs,
+): ...
 
 
-def runProcessAsync(cmd: str, *args, shell=True, logHandlers=(),
-                    reader=PermissionFixReader, **kwargs):
+def runProcessAsync(
+    cmd: str, *args, shell=True, logHandlers=(), reader=PermissionFixReader, **kwargs
+):
     if not cmd:
         return False
 
     try:
         process = _PopenWrapper(cmd, *args, shell=shell, **kwargs)
-    except Exception as e:
-        logger.error(str(e))
+    except Exception:
+        logger.exception("Error when running process")
         return False
 
     if reader:

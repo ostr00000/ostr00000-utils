@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 import pickle
-from collections.abc import Iterable
-from typing import Protocol, Self
+from typing import TYPE_CHECKING, Protocol, Self
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 class StrComparable(Protocol):
-    def __eq__(self, other: str):
-        ...
+    def __eq__(self, other: str): ...
 
 
 class TagFilterNode:
     TAG_NAME = ''
 
-    def __init__(self, tagName: str = None, parent: TagFilterNode = None):
+    def __init__(self, tagName: str | None = None, parent: TagFilterNode = None):
         self.tagName = self.TAG_NAME if tagName is None else tagName
         self.parent = parent
 
@@ -31,7 +32,8 @@ class TagFilterNode:
 
     @classmethod
     def deserialize(cls, data: bytes) -> Self:
-        return pickle.loads(data)
+        # SKIP: TODO [P2]: temporary ignored, maybe this could be a json?
+        return pickle.loads(data)  # noqa: S301
 
     def serialize(self) -> bytes:
         return pickle.dumps(self, protocol=0)
@@ -41,7 +43,9 @@ class TagFilterNode:
 
 
 class TagFilterSequenceNode(TagFilterNode):
-    def __init__(self, tagList: list[TagFilterNode] = None, parent: TagFilterNode = None):
+    def __init__(
+        self, tagList: list[TagFilterNode] | None = None, parent: TagFilterNode = None
+    ):
         self.tagList = [] if tagList is None else tagList
         super().__init__(parent=parent)
         for t in self.tagList:
@@ -60,7 +64,7 @@ class TagFilterSequenceNode(TagFilterNode):
         node.parent = None
 
     def __repr__(self):
-        return f'{str(self)}[{",".join(repr(t) for t in self.tagList)}]'
+        return f'{self}[{",".join(repr(t) for t in self.tagList)}]'
 
     def __len__(self):
         return len(self.tagList)
@@ -84,8 +88,12 @@ class TagFilterExcludeNode(TagFilterSequenceNode):
 
     @property
     def content(self):
-        assert len(self.tagList) == 1
-        return self.tagList[0]
+        match self.tagList:
+            case [t]:
+                return t
+            case _:
+                msg = f"Invalid tag list: {self.tagList}"
+                raise ValueError(msg)
 
 
 class TagFilterAndNode(TagFilterSequenceNode):
