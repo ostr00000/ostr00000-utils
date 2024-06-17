@@ -12,8 +12,8 @@ class SpaceLineEdit(QWidget):
 
     def __init__(
         self,
-        parent: QWidget = None,
-        validator: QValidator = None,
+        parent: QWidget | None = None,
+        validator: QValidator | None = None,
         flags=_emptyWindowFlags,
         splitChars=' ,;',
         textSeparator=',',
@@ -73,7 +73,8 @@ class SpaceLineEdit(QWidget):
 
     def _createLineEdit(self, text=''):
         lineEdit = QLineEdit(str(text), self)
-        lineEdit.setValidator(self._validator)
+        if self._validator is not None:
+            lineEdit.setValidator(self._validator)
         lineEdit.textChanged.connect(partial(self.onTextChanged, lineEdit))
         lineEdit.installEventFilter(self)
         return lineEdit

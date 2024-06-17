@@ -1,7 +1,7 @@
 import types
 
 from pyqt_utils.metaclass.qt_meta import AbcQtMeta
-from pyqt_utils.python.decorators import entryExitDec, exceptionDec
+from pyqt_utils.python.decorators import entryExitDecFactory, exceptionDecFactory
 
 
 class SlotDecoratorMeta(AbcQtMeta):
@@ -13,6 +13,8 @@ class SlotDecoratorMeta(AbcQtMeta):
             if not fun.__name__.startswith('on'):
                 continue
 
-            namespace[funName] = exceptionDec(entryExitDec(fun))
+            f1 = exceptionDecFactory()
+            f2 = entryExitDecFactory()
+            namespace[funName] = f1(f2(fun))
 
         return super().__new__(cls, name, bases, namespace, **kwargs)

@@ -2,9 +2,10 @@ import logging
 import re
 import shlex
 from collections.abc import Callable
+from pathlib import Path
 from subprocess import PIPE, Popen
 from threading import Thread
-from typing import overload
+from typing import Iterable, overload
 
 logger = logging.getLogger(__name__)
 type StrPopen = Popen[str]
@@ -12,23 +13,26 @@ type StrPopen = Popen[str]
 
 def _PopenWrapper(*args, shell=True, **kwargs):
     logger.info(f"Run command {args}")
-    process = Popen(
+    process: Popen[str] = Popen(
         *args,
         # SKIP: this may be configured by user, so there is indeed some kind of risk
         shell=shell,  # noqa: S603
         stdout=PIPE,
         stderr=PIPE,
         encoding='UTF-8',
+        text=True,
         **kwargs,
     )
 
     match process.args:
         case str(strArgs):
             pass
+        case Path() as pathArg:
+            strArgs = str(pathArg)
         case list(listArgs):
-            strArgs = shlex.join(listArgs)
+            strArgs = shlex.join([str(s) for s in listArgs])
         case _:
-            msg = f"Unknown type of process.args: {type(process.args)}"
+            msg = f"Unexpected type of process.args: {type(process.args)}"
             raise TypeError(msg)
 
     logger.info(strArgs)
@@ -53,6 +57,9 @@ class OutputReader:
         return th
 
     def _readOutput(self, process: StrPopen):
+        if process.stdout is None:
+            return
+
         for line in process.stdout.readlines():
             if not (strippedLine := line.strip()):
                 continue
@@ -62,6 +69,9 @@ class OutputReader:
         pass
 
     def _readError(self, process: StrPopen):
+        if process.stderr is None:
+            return
+
         for line in process.stderr.readlines():
             if not (strippedLine := line.strip()):
                 continue
@@ -73,7 +83,7 @@ class OutputReader:
 
 class OutputReaderLogger(OutputReader):
     def __init__(
-        self, process: StrPopen, logHandlers: list[logging.Handler] = (), **kwargs
+        self, process: StrPopen, logHandlers: Iterable[logging.Handler] = (), **kwargs
     ):
         self.log = logging.getLogger(f'{__name__}.{type(self).__name__}.{process.pid}')
         self.log.setLevel(logging.DEBUG)
@@ -118,9 +128,18 @@ class PermissionFixReader(OutputReaderLogger):
         self.stderrThread = self._startThread(process, target=self._readError)
 
     def _getWorkingDir(self) -> str | None:
-        match shlex.split(self.originalProcess.args):
+        match self.originalProcess.args:
+            case str(orgArg):
+                orgArgs = shlex.split(orgArg)
+            case [*orgArgs]:
+                pass
+            case _:
+                self.log.error("Unknown type for input arguments")
+                return None
+
+        match orgArgs:
             case ['cd', workingDir, _rest]:
-                return workingDir
+                return str(workingDir)
 
             case [_notCd, _workingDir, _rest]:
                 self.log.error("Command do not start with `cd` command")
@@ -144,7 +163,7 @@ def runProcessAsync(
     cmd: list[str],
     *args,
     shell=False,
-    logHandlers: list[logging.Handler] = (),
+    logHandlers: Iterable[logging.Handler] = (),
     reader: type[OutputReader] | None = PermissionFixReader,
     **kwargs,
 ): ...
@@ -155,14 +174,19 @@ def runProcessAsync(
     cmd: str,
     *args,
     shell=True,
-    logHandlers: list[logging.Handler] = (),
+    logHandlers: Iterable[logging.Handler] = (),
     reader: type[OutputReader] | None = PermissionFixReader,
     **kwargs,
 ): ...
 
 
 def runProcessAsync(
-    cmd: str, *args, shell=True, logHandlers=(), reader=PermissionFixReader, **kwargs
+    cmd: str | list[str],
+    *args,
+    shell=True,
+    logHandlers: Iterable[logging.Handler] = (),
+    reader: type[OutputReader] | None = PermissionFixReader,
+    **kwargs,
 ):
     if not cmd:
         return False

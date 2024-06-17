@@ -26,19 +26,17 @@ class ConflictHelperMeta(type):
             raise
 
     @classmethod
-    def genMetaclassInfo(cls, bases: Iterable[type]) -> list[str]:
+    def genMetaclassInfo(cls, bases: Iterable[type]) -> Iterable[str]:
         for i, b in enumerate(bases):
             yield f"Base {i}: {b} with MRO{type.mro(b)}"
             yield f"Meta {i}: {type(b)} with MRO{type.mro(type(b))}"
 
     @classmethod
     def detectConflict(
-        cls, bases: Iterable[type], metaclass=type, **kwargs
+        cls, bases: list[type], metaclass=type, **kwargs
     ) -> tuple[type, type] | None:
         for i, b1 in enumerate(bases):
-
-            metaTest: Iterable[type] = (object,)
-            for b2 in itertools.chain(metaTest, bases[i + 1 :]):
+            for b2 in (object, *bases[i + 1 :]):
                 try:
                     metaclass.__new__(metaclass, 'IsConflict', (b1, b2), {}, **kwargs)
                 except TypeError as e:

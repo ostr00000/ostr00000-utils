@@ -1,9 +1,11 @@
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 from decorator import decorator
 
 if TYPE_CHECKING:
     from PyQt5.QtWidgets import QMainWindow, QWidget
+
+_reqKwarg: Any = None
 
 
 @runtime_checkable
@@ -18,7 +20,7 @@ class SettingProtocol(Protocol):
 
 @decorator
 def saveGeometryDecFac(
-    fun, key: str | None = None, settings: SettingProtocol = None, *args, **kwargs
+    fun, key: str = _reqKwarg, settings: SettingProtocol = _reqKwarg, *args, **kwargs
 ):
     self: QWidget = args[0]
     settings.setValue(key, self.saveGeometry())
@@ -28,7 +30,7 @@ def saveGeometryDecFac(
 
 @decorator
 def loadGeometryDecFac(
-    fun, key: str | None = None, settings: SettingProtocol = None, *args, **kwargs
+    fun, key: str = _reqKwarg, settings: SettingProtocol = _reqKwarg, *args, **kwargs
 ):
     ret = fun(*args, **kwargs)
     if geom := settings.value(key, None):
@@ -39,7 +41,7 @@ def loadGeometryDecFac(
 
 @decorator
 def saveStateDecFac(
-    fun, key: str | None = None, settings: SettingProtocol = None, *args, **kwargs
+    fun, key: str = _reqKwarg, settings: SettingProtocol = _reqKwarg, *args, **kwargs
 ):
     self: QMainWindow = args[0]
     settings.setValue(key, self.saveState())
@@ -49,7 +51,7 @@ def saveStateDecFac(
 
 @decorator
 def loadStateDecFac(
-    fun, key: str | None = None, settings: SettingProtocol = None, *args, **kwargs
+    fun, key: str = _reqKwarg, settings: SettingProtocol = _reqKwarg, *args, **kwargs
 ):
     ret = fun(*args, **kwargs)
     if state := settings.value(key, None):

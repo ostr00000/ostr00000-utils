@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
+from typing import Iterable
 
 from PyQt5.QtCore import QItemSelectionModel, QModelIndex, QStringListModel, Qt
 from PyQt5.QtTest import QAbstractItemModelTester
@@ -27,8 +28,8 @@ class TagFilterDialog(Ui_TagDialog, BaseUiWidget, QDialog):
     def __post_init__(
         self,
         *args,
-        existingNode: TagFilterOrNode = None,
-        possibleValues: list[str] = (),
+        existingNode: TagFilterOrNode | None = None,
+        possibleValues: Iterable[str] = (),
         **kwargs,
     ):
         super().__post_init__(*args, **kwargs)
@@ -57,14 +58,16 @@ class TagFilterDialog(Ui_TagDialog, BaseUiWidget, QDialog):
 
         self._tagModel.failureCause.connect(self.statusBar.showMessage)
 
-    def setPossibleValues(self, values: list[str]):
+    def setPossibleValues(self, values: Iterable[str]):
         self._possibleValues = sorted(set(values))
         self.possibleTagsWidget.clear()
         self.possibleTagsWidget.addItems(self._possibleValues)
 
         if comp := self.searchLineEdit.completer():
-            model: QStringListModel = comp.model()
-            model.setStringList(values)
+            if isinstance(model := comp.model(), QStringListModel):
+                model.setStringList(values)
+            else:
+                logger.warning("Unsupported completion model")
 
         if isinstance(validator := self.searchLineEdit.validator(), SubstringValidator):
             validator.setPossibleValues(self._possibleValues)

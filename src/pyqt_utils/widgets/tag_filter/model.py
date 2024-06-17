@@ -34,7 +34,7 @@ class TagFilterModel(QAbstractItemModel):
     ](cls, index: QModelIndex, expectedType: type[T] = TagFilterNode) -> T:
         return cls._checkType(index.internalPointer(), expectedType)
 
-    def __init__(self, topNode: TagFilterOrNode = None):
+    def __init__(self, topNode: TagFilterOrNode | None = None):
         super().__init__()
         if topNode is None:
             self.topNode = TagFilterOrNode()

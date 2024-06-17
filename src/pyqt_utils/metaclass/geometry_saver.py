@@ -22,7 +22,8 @@ class GeometrySaverMeta(AbcQtMeta):
         name,
         bases,
         namespace,
-        settings: SettingProtocol = None,
+        *,
+        settings: SettingProtocol,
         saveName: str = "geometry",
     ):
         if not isinstance(settings, SettingProtocol):

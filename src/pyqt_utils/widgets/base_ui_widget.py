@@ -3,7 +3,7 @@ import logging
 import sys
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from types import FrameType
+from types import FrameType, ModuleType
 
 from PyQt5.QtWidgets import QWidget
 
@@ -79,11 +79,13 @@ class BaseWidget(QWidget, ABC, metaclass=AbcQtMeta):
 
         if not getattr(self, method.__name__ + 'executed__', False):
             cl = list(codeToClass.values())[len(visitedClasses) - 1]
+            mod = inspect.getmodule(cl)
+            modFile = mod.__file__ if isinstance(mod, ModuleType) else '!UnknownModule!'
             msg = (
                 f'Need to call `super().{method.__name__}(*args, **kwargs)`\n'
                 f'in overridden method: `{method.__name__}` in class: '
                 f'`{cl.__module__}.{cl.__qualname__}`\n '
-                f'in file {inspect.getmodule(cl).__file__}:1'
+                f'in file {modFile}:1'
             )
             raise MissingSuperCall(msg)
 

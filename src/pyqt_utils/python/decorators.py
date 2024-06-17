@@ -25,7 +25,7 @@ def _lessArgAttempt(fun, *args, **kw):
                 raise
 
 
-_lessArgAttemptDec = baseDecorator(_lessArgAttempt, kwsyntax=True)
+_lessArgAttemptDec = baseDecorator(_lessArgAttempt, kwsyntax=True)  # type: ignore[reportCallIssue]
 
 
 def decoratorForSlot(decoratorFun):
@@ -59,9 +59,12 @@ def decoratorForSlot(decoratorFun):
     >>>        foo = Foo()
     >>>        foo.sig.emit('isOk?')
     """
-    dec = baseDecorator(decoratorFun, kwsyntax=True)  # decorator.decorate.fun
+    dec = baseDecorator(decoratorFun, kwsyntax=True)  # type: ignore[reportCallIssue]
 
-    def _decoratorForSlotInner(fun, *args, **kwargs):
+    def _decoratorForSlotInner(fun=None, *args, **kwargs):
+        if fun is None:  # maybe this is a factory decorator
+            return _decoratorForSlotInner
+
         return dec(_lessArgAttemptDec(fun), *args, **kwargs)
 
     return _decoratorForSlotInner
@@ -80,32 +83,52 @@ def lessArgDec(fun):
     return _lessArgDecInner
 
 
+def _extractLoggerInner(decoratedFun) -> logging.Logger | None:
+    if mod := sys.modules.get(decoratedFun.__module__, None):
+        return getattr(mod, 'logger', None)
+    return None
+
+
 def _extractLogger(decObj):
     def _extractLoggerFunOrArg(decoratedFun=None, logger=None):
         nonlocal decObj
-        if decoratedFun is None:
-            if logger is None:
-                msg = "Logger must be present in the decorated function"
+
+        match decoratedFun, logger:
+            case None, None:  # called with no args
+                return _extractLoggerFunOrArg
+
+            case None, logging.Logger():
+                return partial(_extractLoggerFunOrArg, logger=logger)
+
+            case None, _:
+                msg = f"Unknown logger parameter type {type(logger)}"
                 raise TypeError(msg)
-            return partial(_extractLoggerFunOrArg, logger=logger)
 
-        if not callable(decoratedFun):
-            msg = "decoratedFun must be a function"
-            raise TypeError(msg)
+            case decoratedFun, _ if not callable(decoratedFun):
+                msg = f"decoratedFun must be a function, got {decoratedFun}"
+                raise TypeError(msg)
 
-        if logger is None and (mod := sys.modules.get(decoratedFun.__module__, None)):
-            logger = getattr(mod, 'logger', None)
+            case decoratedFun, logging.Logger():
+                return decObj(decoratedFun, logger)
 
-        if logger:
-            return decObj(decoratedFun, logger)
-        return decObj(decoratedFun)
+            case decoratedFun, None:
+                if (logger := _extractLoggerInner(decoratedFun)) is None:
+                    # we use default logger defined in a decorator
+                    return decObj(decoratedFun)
+                return decObj(decoratedFun, logger)
+
+            case _:
+                msg = f"Unknown logger parameters"
+                raise TypeError(msg)
 
     return _extractLoggerFunOrArg
 
 
 @_extractLogger
 @decoratorForSlot
-def exceptionDec(fun, logger=_moduleLogger, level=logging.ERROR, *args, **kwargs):
+def exceptionDecFactory(
+    fun, logger=_moduleLogger, level=logging.ERROR, *args, **kwargs
+):
     try:
         return fun(*args, **kwargs)
     except Exception:
@@ -115,7 +138,7 @@ def exceptionDec(fun, logger=_moduleLogger, level=logging.ERROR, *args, **kwargs
 
 @_extractLogger
 @decoratorForSlot
-def entryExitDec(fun, logger=_moduleLogger, *args, **kwargs):
+def entryExitDecFactory(fun, logger=_moduleLogger, *args, **kwargs):
     logger.debug(f"Before: {fun.__name__}")
     result = fun(*args, **kwargs)
     logger.debug(f"After: {fun.__name__}")
@@ -124,7 +147,7 @@ def entryExitDec(fun, logger=_moduleLogger, *args, **kwargs):
 
 @_extractLogger
 @decoratorForSlot
-def timeDec(fun, logger=_moduleLogger, *args, **kwargs):
+def timeDecFactory(fun, logger=_moduleLogger, *args, **kwargs):
     start = time.time()
     try:
         return fun(*args, **kwargs)
@@ -133,7 +156,7 @@ def timeDec(fun, logger=_moduleLogger, *args, **kwargs):
 
 
 @decoratorForSlot
-def cursorDec(fun, cursor=Qt.WaitCursor, *args, **kwargs):
+def cursorDecFactory(fun, cursor=Qt.WaitCursor, *args, **kwargs):
     QApplication.setOverrideCursor(cursor)
     try:
         return fun(*args, **kwargs)
@@ -142,7 +165,7 @@ def cursorDec(fun, cursor=Qt.WaitCursor, *args, **kwargs):
 
 
 @decoratorForSlot
-def singleCallDec(
+def singleCallDecFactory(
     fun, *args, attrName='__is_calling__', callingDefaultValue=None, **kwargs
 ):
     isCalling = getattr(fun, attrName, False)

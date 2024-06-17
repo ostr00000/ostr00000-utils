@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pickle
-from typing import TYPE_CHECKING, Protocol, Self
+from typing import Container, TYPE_CHECKING, Protocol, Self
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -14,11 +14,11 @@ class StrComparable(Protocol):
 class TagFilterNode:
     TAG_NAME = ''
 
-    def __init__(self, tagName: str | None = None, parent: TagFilterNode = None):
+    def __init__(self, tagName: str | None = None, parent: TagFilterNode | None = None):
         self.tagName = self.TAG_NAME if tagName is None else tagName
         self.parent = parent
 
-    def isAccepted(self, tags: list[StrComparable | str]) -> bool:
+    def isAccepted(self, tags: Container[StrComparable | str]) -> bool:
         return self.tagName in tags
 
     def filterTags(self, allowedTags: Iterable[str]):
@@ -44,7 +44,9 @@ class TagFilterNode:
 
 class TagFilterSequenceNode(TagFilterNode):
     def __init__(
-        self, tagList: list[TagFilterNode] | None = None, parent: TagFilterNode = None
+        self,
+        tagList: list[TagFilterNode] | None = None,
+        parent: TagFilterNode | None = None,
     ):
         self.tagList = [] if tagList is None else tagList
         super().__init__(parent=parent)
@@ -80,7 +82,7 @@ class TagFilterOrNode(TagFilterSequenceNode):
 class TagFilterExcludeNode(TagFilterSequenceNode):
     TAG_NAME = 'NOT'
 
-    def __init__(self, tagContent: TagFilterNode, parent: TagFilterNode = None):
+    def __init__(self, tagContent: TagFilterNode, parent: TagFilterNode | None = None):
         super().__init__([tagContent], parent=parent)
 
     def isAccepted(self, tags: list[str]) -> bool:

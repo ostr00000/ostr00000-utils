@@ -2,7 +2,7 @@ import inspect
 import logging
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
-from pyqt_utils.python.decorators import entryExitDec, exceptionDec, lessArgDec, timeDec
+from pyqt_utils.python.decorators import entryExitDecFactory, exceptionDecFactory, lessArgDec, timeDecFactory
 
 logger = logging.getLogger(__name__)
 specialLogger = logging.getLogger(__name__ + '.special')
@@ -16,29 +16,30 @@ class TestClass:
     with name 'logger' (if not provided explicitly).
     """
 
-    @exceptionDec
-    @entryExitDec
-    @timeDec
+    @exceptionDecFactory()
+    @entryExitDecFactory()
+    @timeDecFactory()
     def foo(self):
         """Multiple decorators are allowed."""
 
     def bar(self):
         """Check decorators used directly as function call."""
 
-    dec = timeDec(bar, specialLogger)
-    bar = entryExitDec(exceptionDec(dec))
+    _d1 = timeDecFactory(logger=specialLogger)(bar)
+    _d2 = exceptionDecFactory()(_d1)
+    bar = entryExitDecFactory()(_d2)
 
     @staticmethod
-    @entryExitDec
+    @entryExitDecFactory()
     def baz():
         """Staticmethod decorator must be the last one."""
 
     @classmethod
-    @entryExitDec
+    @entryExitDecFactory()
     def bazClass(cls):
         """Class-method decorator must be the last one."""
 
-    @entryExitDec(logger=specialLogger)
+    @entryExitDecFactory(logger=specialLogger)
     @lessArgDec
     def fooBar(self):
         """Check a function with custom logger."""
@@ -66,57 +67,57 @@ class TestSlotClass(QObject):
         self.sig.emit(123, 'ok')
 
     # all arg possibilities
-    @entryExitDec
+    @entryExitDecFactory()
     def onSigIntStrRaw(self, num, text):
         pass
 
     @lessArgDec
-    @entryExitDec
+    @entryExitDecFactory()
     def onSigIntStr(self, num, text):
         pass
 
     @staticmethod
-    @entryExitDec
+    @entryExitDecFactory()
     def onSigIntStrRawStat(num, text):
         pass
 
     @staticmethod
     @lessArgDec
-    @entryExitDec
+    @entryExitDecFactory()
     def onSigIntStrStat(num, text):
         pass
 
     # limit to 1 arg
     @lessArgDec
-    @entryExitDec
+    @entryExitDecFactory()
     def onSigInt(self, num):
         pass
 
-    @entryExitDec
+    @entryExitDecFactory()
     @pyqtSlot(int)
     def onSigIntSlot(self, num):
         pass
 
     @staticmethod
     @lessArgDec
-    @entryExitDec
+    @entryExitDecFactory()
     def onSigIntStat(num):
         pass
 
     # limit to 0 arg
     @lessArgDec
-    @entryExitDec
+    @entryExitDecFactory()
     def onSig(self):
         pass
 
-    @entryExitDec
+    @entryExitDecFactory()
     @pyqtSlot()
     def onSigSlot(self):
         pass
 
     @staticmethod
     @lessArgDec
-    @entryExitDec
+    @entryExitDecFactory()
     def onSigStat():
         pass
 
