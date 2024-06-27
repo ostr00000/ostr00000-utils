@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from decorator import decorator
 
@@ -10,8 +10,8 @@ _reqKwarg: Any = None
 
 @runtime_checkable
 class SettingProtocol(Protocol):
-    # SKIP: false positive, https://github.com/jendrikseipp/vulture/issues/309
-    def value(self, key: str, default: Any = None) -> Any: ...  # noqa: F841
+
+    def value(self, key: str, defaultValue: Any = None) -> Any: ...
 
     def setValue(self, key: str, value: Any): ...
 

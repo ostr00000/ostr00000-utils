@@ -1,11 +1,11 @@
 import logging
 import re
 import shlex
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from subprocess import PIPE, Popen
 from threading import Thread
-from typing import Iterable, overload
+from typing import overload
 
 logger = logging.getLogger(__name__)
 type StrPopen = Popen[str]

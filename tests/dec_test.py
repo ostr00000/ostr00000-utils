@@ -2,7 +2,12 @@ import inspect
 import logging
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
-from pyqt_utils.python.decorators import entryExitDecFactory, exceptionDecFactory, lessArgDec, timeDecFactory
+from pyqt_utils.python.decorators import (
+    entryExitDecFactory,
+    exceptionDecFactory,
+    lessArgDec,
+    timeDecFactory,
+)
 
 logger = logging.getLogger(__name__)
 specialLogger = logging.getLogger(__name__ + '.special')

@@ -34,6 +34,8 @@ pre_commit_uninstall:
 pre_commit_auto_update:
 	$(PYTHON_ENV) -m pre_commit autoupdate
 
+pre_commit_gc:
+	$(PYTHON_ENV) -m pre_commit gc
 
 # ######## checks ########
 .PHONY: check_by_mypy check_by_pyright check_by_pylint

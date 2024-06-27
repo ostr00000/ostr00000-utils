@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import pickle
-from typing import Container, TYPE_CHECKING, Protocol, Self
+from typing import TYPE_CHECKING, Protocol, Self, overload
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Container, Iterable
 
 
 class StrComparable(Protocol):
-    def __eq__(self, other: str): ...
+    @overload
+    def __eq__(self, other: str) -> bool: ...
+    @overload
+    def __eq__(self, other: object) -> bool: ...
 
 
 class TagFilterNode:

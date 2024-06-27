@@ -1,4 +1,10 @@
-from PyQt5.QtWidgets import QHBoxLayout, QLayoutItem, QLineEdit, QScrollArea, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import (
+    QHBoxLayout,
+    QLayoutItem,
+    QLineEdit,
+    QScrollArea,
+    QVBoxLayout,
+)
 
 from pyqt_utils.widgets.space_line_edit import SpaceLineEdit
 

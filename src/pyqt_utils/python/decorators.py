@@ -118,7 +118,7 @@ def _extractLogger(decObj):
                 return decObj(decoratedFun, logger)
 
             case _:
-                msg = f"Unknown logger parameters"
+                msg = "Unknown logger parameters"
                 raise TypeError(msg)
 
     return _extractLoggerFunOrArg

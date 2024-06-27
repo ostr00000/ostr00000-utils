@@ -42,5 +42,5 @@ class DisplayWidgetAction[W: QWidget](QAction, metaclass=AbcQtMeta):
         self._widget = None
 
     @abstractmethod
-    def createWidget(self) -> W:
+    def createWidget(self, parent: QWidget | None = None) -> W:
         raise NotImplementedError

@@ -109,9 +109,10 @@ repos:
       - id: vulture
 
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.354
+    rev: v1.1.367
     hooks:
       - id: pyright
+        verbose: true
 
 #  - repo: local
 #    hooks:

@@ -1,10 +1,9 @@
 from abc import ABCMeta
+from typing import TYPE_CHECKING
 
 from PyQt5.QtWidgets import QWidget
 
 from pyqt_utils.metaclass.debug import ConflictHelperMeta, RemainingKwMeta
-from typing import TYPE_CHECKING
-
 
 if TYPE_CHECKING:
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Iterable
+from typing import TYPE_CHECKING
 
 from PyQt5.QtCore import QItemSelectionModel, QModelIndex, QStringListModel, Qt
 from PyQt5.QtTest import QAbstractItemModelTester
@@ -18,10 +18,13 @@ from pyqt_utils.widgets.tag_filter.nodes import (
     TagFilterSequenceNode,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 logger = logging.getLogger(__name__)
 
 
-class TagFilterDialog(Ui_TagDialog, BaseUiWidget, QDialog):
+class TagFilterDialog(Ui_TagDialog, QDialog, BaseUiWidget):
     _activeListWidget: None | QListWidget
     _possibleValues: list[str]
 
