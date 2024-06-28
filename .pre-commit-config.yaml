@@ -1,13 +1,15 @@
+# This file may be generated from template.
+# If you want to customize it, then place custom content between
+# special markers `START_SKIP_AREA`, `END_SKIP_AREA`.
+
 default_language_version:
   python: python3.12
-
 
 exclude: |  # python regex
   (?x)        # verbose regex
   ^(?:        # start of filename
     .*_ui.py  # Qt generated files
   )$          # end of filename
-
 
 repos:
   - repo: meta

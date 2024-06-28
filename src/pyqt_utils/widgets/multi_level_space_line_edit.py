@@ -68,8 +68,8 @@ class MultiLevelSpaceLineEdit(SpaceLineEdit):
 
 class ScrollSpaceLineEdit(QScrollArea):
     def __init__(self, parent=None, **kwargs):
-        super().__init__(parent)
-        self.sle = MultiLevelSpaceLineEdit(parent=self, **kwargs)
+        super().__init__(parent=parent, **kwargs)
+        self.sle = MultiLevelSpaceLineEdit(parent=self)
         self.setWidget(self.sle)
         self.setWidgetResizable(True)
 

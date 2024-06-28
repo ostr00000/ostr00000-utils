@@ -58,7 +58,7 @@ class BaseWidget(QWidget, ABC, metaclass=AbcQtMeta):
 
     def __init__(self, parent=None, *args, **kwargs):
         self.__forceSuperCall(self.__pre_init__, *args, **kwargs)
-        super().__init__(parent)
+        super().__init__(parent=parent)
         self.__forceSuperCall(self.__pre_setup__, *args, **kwargs)
         self.__forceSuperCall(self.__post_init__, *args, **kwargs)
 
