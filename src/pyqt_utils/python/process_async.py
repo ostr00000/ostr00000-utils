@@ -16,7 +16,7 @@ def _PopenWrapper(*args, shell=True, **kwargs):
     process: Popen[str] = Popen(
         *args,
         # SKIP: this may be configured by user, so there is indeed some kind of risk
-        shell=shell,  # noqa: S603
+        shell=shell,  # noqa: S603 # SKIP
         stdout=PIPE,
         stderr=PIPE,
         encoding='UTF-8',

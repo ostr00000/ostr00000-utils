@@ -1,32 +1,15 @@
 import logging
-import typing
+from functools import wraps
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QDragEnterEvent, QDropEvent
-from PyQt5.QtWidgets import QFileDialog, QWidget
+from PyQt5.QtWidgets import QFileDialog
 
 logger = logging.getLogger(__name__)
 
 
 class DropFileDialog(QFileDialog):
-    @typing.overload
-    def __init__(
-        self,
-        parent: QWidget,
-        f: Qt.WindowFlags | Qt.WindowType,
-    ) -> None: ...
 
-    # noinspection PyShadowingBuiltins
-    @typing.overload
-    def __init__(
-        self,
-        parent: QWidget | None = ...,
-        caption: str = ...,  # noqa: F841 # SKIP: false positive in vulture
-        directory: str = ...,  # noqa: F841 # SKIP: false positive in vulture
-        # SKIP: shadows builtin, but this defined in Qt API
-        filter: str = ...,  # noqa: A002
-    ) -> None: ...
-
+    @wraps(QFileDialog.__init__, ('__annotations__',))
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setAcceptDrops(True)
@@ -34,19 +17,22 @@ class DropFileDialog(QFileDialog):
         self.setMinimumWidth(800)
 
     def dropEvent(self, dropEvent: QDropEvent) -> None:
-        if dropEvent.mimeData().hasUrls():
-            formattedUrls = []
-            for url in dropEvent.mimeData().urls():
-                if not url.isLocalFile():
-                    continue
+        if not dropEvent.mimeData().hasUrls():
+            return super().dropEvent(dropEvent)
 
-                self.selectUrl(url)
-                formattedUrls.append(f'"{url.toLocalFile()}"')
-            logger.debug(f"Selected files: {formattedUrls}")
-            if len(formattedUrls) > 1:
-                self.selectFile(''.join(formattedUrls))
-        else:
-            super().dropEvent(dropEvent)
+        formattedUrls = []
+        for url in dropEvent.mimeData().urls():
+            if not url.isLocalFile():
+                continue
+
+            self.selectUrl(url)
+            formattedUrls.append(f'"{url.toLocalFile()}"')
+
+        logger.debug(f"Selected files: {formattedUrls}")
+        if len(formattedUrls) > 1:
+            self.selectFile(''.join(formattedUrls))
+            return None
+        return None
 
     def dragEnterEvent(self, dragEnterEvent: QDragEnterEvent) -> None:
         if dragEnterEvent.mimeData().hasUrls():

@@ -5,8 +5,8 @@ class SkipFrameInModule:
     def __init__(self, *args):
         # SKIP reason: This is the only way, because there is no public API
         # noinspection PyUnresolvedReferences,PyProtectedMember
-        self._moduleNames = [logging._srcfile, *args]  # noqa: SLF001
-        logging._srcfile = self  # noqa: SLF001
+        self._moduleNames = [logging._srcfile, *args]  # noqa: SLF001 # SKIP
+        logging._srcfile = self  # noqa: SLF001 # SKIP
 
     def addModule(self, moduleName):
         """Add a module to the ignored modules in logging module.
