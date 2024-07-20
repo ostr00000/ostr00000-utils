@@ -1,15 +1,16 @@
 import logging
-from functools import wraps
 
 from PyQt5.QtGui import QDragEnterEvent, QDropEvent
 from PyQt5.QtWidgets import QFileDialog
+
+from pyqt_utils.python.typing_const import wrapAnnotation
 
 logger = logging.getLogger(__name__)
 
 
 class DropFileDialog(QFileDialog):
 
-    @wraps(QFileDialog.__init__, ('__annotations__',))
+    @wrapAnnotation(QFileDialog.__init__)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setAcceptDrops(True)
