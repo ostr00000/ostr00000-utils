@@ -36,7 +36,7 @@ def loadClassFromPackage(
         except Exception:
             msg = f"Error when loading module {moduleInfo.name}"
             logger.exception(msg)
-            return
+            continue
 
         for name, maybeClass in mod.__dict__.items():
             if filterPrivate and name.startswith('_'):
