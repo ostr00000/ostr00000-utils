@@ -18,6 +18,13 @@ class DisplayWidgetAction[W: QWidget](QAction, metaclass=AbcQtMeta):
         self._widget: W | None = None
         self.triggered.connect(self.onTriggered)
 
+    def parent(self) -> QWidget | None:
+        match super().parent():
+            case (QWidget() | None) as p:
+                return p
+            case _:
+                raise TypeError
+
     @property
     def widget(self) -> W:
         if self._widget is None:

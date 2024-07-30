@@ -28,6 +28,17 @@ class TagFilterDialog(Ui_TagDialog, QDialog, BaseUiWidget):
     _activeListWidget: None | QListWidget
     _possibleValues: list[str]
 
+    def __init__(
+        self,
+        *args,
+        existingNode: TagFilterOrNode | None = None,
+        possibleValues: Iterable[str] = (),
+        **kwargs,
+    ):
+        kwargs['possibleValues'] = possibleValues
+        kwargs['existingNode'] = existingNode
+        super().__init__(*args, **kwargs)
+
     def __post_init__(
         self,
         *args,
