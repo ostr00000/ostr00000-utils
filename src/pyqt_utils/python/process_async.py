@@ -118,8 +118,7 @@ class PermissionFixReader(OutputReaderLogger):
             return
 
         if (workingDir := self._getWorkingDir()) is None:
-            self.log.error("Cannot find working dir")
-            return
+            workingDir = Path(fileWithoutPermission).parent
 
         self._fixPermission(f'cd "{workingDir}" ; chmod u+x "{fileWithoutPermission}"')
 
