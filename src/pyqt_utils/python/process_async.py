@@ -1,7 +1,10 @@
+import ctypes
 import logging
 import re
 import shlex
+import signal
 from collections.abc import Callable, Iterable
+from functools import wraps
 from pathlib import Path
 from subprocess import PIPE, Popen
 from threading import Thread
@@ -11,9 +14,29 @@ logger = logging.getLogger(__name__)
 type StrPopen = Popen[str]
 
 
-def _PopenWrapper(*args, shell=True, **kwargs):
+def createPreExecForParentDeath(sig=signal.SIGTERM):
+    """Ensure child process exit when parent process exits.
+
+    Based on:
+    https://stackoverflow.com/a/43152455
+    https://man7.org/linux/man-pages/man2/prctl.2.html
+
+    Example:
+    >>> import subprocess
+    >>> subprocess.Popen(['sleep', 10], preexec_fn=createPreExecForParentDeath())
+    """
+    PR_SET_PDEATHSIG = 1
+
+    def preExec():
+        return ctypes.CDLL("libc.so.6").prctl(PR_SET_PDEATHSIG, sig)
+
+    return preExec
+
+
+@wraps(Popen.__init__)
+def openProcessWrapper(*args, shell=False, **kwargs) -> StrPopen:
     logger.info(f"Run command {args}")
-    process: Popen[str] = Popen(
+    process: StrPopen = Popen(
         *args,
         # SKIP: this may be configured by user, so there is indeed some kind of risk
         shell=shell,  # noqa: S603 # SKIP
@@ -45,8 +68,8 @@ class OutputReader:
         self.outputThread = self._startThread(process, target=self._readOutput)
         self.stderrThread = self._startThread(process, target=self._readError)
 
-    @staticmethod
-    def _startThread(process: StrPopen, target: Callable[[StrPopen], None]):
+    @classmethod
+    def _startThread(cls, process: StrPopen, target: Callable[[StrPopen], None]):
         th = Thread(
             target=target,
             name=f"{process.args}.{target.__name__}",
@@ -87,6 +110,8 @@ class OutputReaderLogger(OutputReader):
     ):
         self.log = logging.getLogger(f'{__name__}.{type(self).__name__}.{process.pid}')
         self.log.setLevel(logging.DEBUG)
+        for h in list(self.log.handlers):
+            self.log.removeHandler(h)
         for h in logHandlers:
             self.log.addHandler(h)
 
@@ -122,7 +147,7 @@ class PermissionFixReader(OutputReaderLogger):
 
         self._fixPermission(f'cd "{workingDir}" ; chmod u+x "{fileWithoutPermission}"')
 
-        process = _PopenWrapper(self.originalProcess.args)
+        process = openProcessWrapper(self.originalProcess.args)
         self.outputThread = self._startThread(process, target=self._readOutput)
         self.stderrThread = self._startThread(process, target=self._readError)
 
@@ -149,7 +174,7 @@ class PermissionFixReader(OutputReaderLogger):
                 return None
 
     def _fixPermission(self, cmd: str):
-        permissionProcess = _PopenWrapper(cmd)
+        permissionProcess = openProcessWrapper(cmd, shell=True)  # noqa: S604
         stdout, stderr = permissionProcess.communicate()
         if stderr:
             self.log.error(stderr)
@@ -191,7 +216,7 @@ def runProcessAsync(
         return False
 
     try:
-        process = _PopenWrapper(cmd, *args, shell=shell, **kwargs)
+        process = openProcessWrapper(cmd, *args, shell=shell, **kwargs)
     except Exception:
         logger.exception("Error when running process")
         return False
