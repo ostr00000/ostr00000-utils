@@ -102,8 +102,8 @@ class SpaceLineEdit(QWidget):
             case [str(first), *others]:
                 lineEdit.setText(first)
                 insertIndex = self._lineEdits.index(lineEdit) + 1
-                for index, text in enumerate(others, insertIndex):
-                    self._lineEdits.insert(index, self._createLineEdit(text))
+                for index, otherText in enumerate(others, insertIndex):
+                    self._lineEdits.insert(index, self._createLineEdit(otherText))
                 self._refreshLayout()
                 self._setFocus(lineEdit, offset=1)
 

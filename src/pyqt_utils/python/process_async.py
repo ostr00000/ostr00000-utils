@@ -36,10 +36,10 @@ def createPreExecForParentDeath(sig=signal.SIGTERM):
 @wraps(Popen.__init__)
 def openProcessWrapper(*args, shell=False, **kwargs) -> StrPopen:
     logger.info(f"Run command {args}")
-    process: StrPopen = Popen(
+    # SKIP: this may be configured by user, so there is indeed some kind of risk
+    process: StrPopen = Popen(  # noqa: S603 # SKIP
         *args,
-        # SKIP: this may be configured by user, so there is indeed some kind of risk
-        shell=shell,  # noqa: S603 # SKIP
+        shell=shell,
         stdout=PIPE,
         stderr=PIPE,
         encoding='UTF-8',
