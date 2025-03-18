@@ -63,7 +63,7 @@ def decoratorForSlot(decoratorFun):
 
     def _decoratorForSlotInner(fun=None, *args, **kwargs):
         if fun is None:  # maybe this is a factory decorator
-            return _decoratorForSlotInner
+            return lambda f: dec(_lessArgAttemptDec(f), *args, **kwargs)
 
         return dec(_lessArgAttemptDec(fun), *args, **kwargs)
 
