@@ -27,6 +27,6 @@ if __name__ == '__main__':
         level=logging.INFO, format="[%(filename)-16s:%(lineno)-3d] %(message)s"
     )
 
-    logging.info("Known filename")
+    logging.getLogger().info("Known filename")
     skipFrame = SkipFrameInModule(__file__)
-    logging.info("Unknown filename")
+    logging.getLogger().info("Unknown filename")

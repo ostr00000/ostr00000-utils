@@ -29,9 +29,9 @@ class TagFilterModel(QAbstractItemModel):
         return var
 
     @classmethod
-    def _getFromInternalPointer[
-        T
-    ](cls, index: QModelIndex, expectedType: type[T] = TagFilterNode) -> T:
+    def _getFromInternalPointer[T](
+        cls, index: QModelIndex, expectedType: type[T] = TagFilterNode
+    ) -> T:
         return cls._checkType(index.internalPointer(), expectedType)
 
     def __init__(self, topNode: TagFilterOrNode | None = None):
