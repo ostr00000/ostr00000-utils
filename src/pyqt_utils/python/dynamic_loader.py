@@ -4,19 +4,17 @@ import pkgutil
 from collections.abc import Iterator
 from inspect import isabstract, isclass
 from types import ModuleType
-from typing import TypeVar
 
 _moduleLogger = logging.getLogger(__name__)
-_T = TypeVar('_T')
 
 
-def loadClassFromPackage(
+def loadClassFromPackage[T](
     package: ModuleType,
     *,
-    requiredSubclass: type[_T] = object,
+    requiredSubclass: type[T] = object,
     filterPrivate: bool = True,
     logger: logging.Logger = _moduleLogger,
-) -> Iterator[type[_T]]:
+) -> Iterator[type[T]]:
     """
     Load all modules from package and subpackages and return classes defined within.
 
