@@ -36,8 +36,7 @@ def createPreExecForParentDeath(sig=signal.SIGTERM):
 @wraps(Popen.__init__)
 def openProcessWrapper(*args, shell=False, **kwargs) -> StrPopen:
     logger.info(f"Run command {args}")
-    # SKIP: this may be configured by user, so there is indeed some kind of risk
-    process: StrPopen = Popen(  # noqa: S603 # SKIP
+    process: StrPopen = Popen(
         *args,
         shell=shell,
         stdout=PIPE,
@@ -207,7 +206,7 @@ def runProcessAsync(
 def runProcessAsync(
     cmd: str | list[str],
     *args,
-    shell=True,
+    shell=False,
     logHandlers: Iterable[logging.Handler] = (),
     reader: type[OutputReader] | None = PermissionFixReader,
     **kwargs,
