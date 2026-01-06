@@ -6,8 +6,7 @@ def changeStatusDec(
     fun,
     msg='',
     failureMsg='',
-    # SKIP: false positive - decorator changes signature
-    returnValue=True,  # noqa: FBT002
+    returnValue=True,
     *args,
     **kwargs,
 ):
