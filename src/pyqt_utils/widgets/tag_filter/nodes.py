@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from collections.abc import Container, Iterable
 
 
-class StrComparable(Protocol):
+class StrComparable(Protocol):  # noqa: PLW1641 #SKIP this is protocol
     @overload
     def __eq__(self, other: str) -> bool: ...
     @overload

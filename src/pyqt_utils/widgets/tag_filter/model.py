@@ -16,6 +16,7 @@ from pyqt_utils.widgets.tag_filter.nodes import (
 logger = logging.getLogger(__name__)
 NodePath_T = tuple[int, ...]
 NodePaths_T = list[NodePath_T]
+_rootIndex = QModelIndex()
 
 
 class TagFilterModel(QAbstractItemModel):
@@ -52,21 +53,21 @@ class TagFilterModel(QAbstractItemModel):
             return [self.tr("Tag")][section]
         return None
 
-    def rowCount(self, curIndex: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, curIndex: QModelIndex = _rootIndex) -> int:
         if not curIndex.isValid():
             return 1
 
         node = self._getFromInternalPointer(curIndex)
         return len(node)
 
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def columnCount(self, parent: QModelIndex = _rootIndex) -> int:
         return 1
 
     def index(
-        self, row: int, column: int, parent: QModelIndex = QModelIndex()
+        self, row: int, column: int, parent: QModelIndex = _rootIndex
     ) -> QModelIndex:
         if not self.hasIndex(row, column, parent):
-            return QModelIndex()
+            return _rootIndex
 
         if parent.isValid():
             parentNode = self._getFromInternalPointer(parent, TagFilterSequenceNode)
@@ -79,11 +80,11 @@ class TagFilterModel(QAbstractItemModel):
 
     def parent(self, child: QModelIndex) -> QModelIndex:
         if not child.isValid():
-            return QModelIndex()
+            return _rootIndex
 
         curNode: TagFilterNode = child.internalPointer()
         if (parentNode := curNode.parent) is None:
-            return QModelIndex()
+            return _rootIndex
 
         return self._getIndexFromNode(parentNode)
 
@@ -181,7 +182,7 @@ class TagFilterModel(QAbstractItemModel):
         self, parentIndex: QModelIndex, mimeData: QMimeData, row: int
     ) -> bool:
         model = QStandardItemModel()
-        model.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex())
+        model.dropMimeData(mimeData, Qt.CopyAction, 0, 0, _rootIndex)
         if model.columnCount() != 1:
             msg = self.tr("Unsupported column size: {}, expected 1")
             self.failureCause.emit(msg.format(model.columnCount()))

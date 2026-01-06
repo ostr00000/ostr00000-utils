@@ -21,6 +21,9 @@ class SkipFrameInModule:
         """Skip also decorators from decorator package."""
         return other in self._moduleNames or other.startswith('<decorator-gen-')
 
+    def __hash__(self):
+        return 23
+
 
 if __name__ == '__main__':
     logging.basicConfig(

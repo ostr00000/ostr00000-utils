@@ -22,7 +22,7 @@ def systemProfileContext(profileFunc):
         sys.setprofile(oldProfile)
 
 
-class MissingSuperCall(Exception):
+class MissingSuperCallError(Exception):
     pass
 
 
@@ -87,7 +87,7 @@ class BaseWidget(QWidget, ABC, metaclass=AbcQtMeta):
                 f'`{cl.__module__}.{cl.__qualname__}`\n '
                 f'in file {modFile}:1'
             )
-            raise MissingSuperCall(msg)
+            raise MissingSuperCallError(msg)
 
     def __pre_init__(self, *args, **kwargs):
         """Initialize only pure python code."""
