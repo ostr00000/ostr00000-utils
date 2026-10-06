@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class TagFilterDialog(Ui_TagDialog, QDialog, BaseUiWidget):
-    _activeListWidget: None | QListWidget
+    _activeListWidget: QListWidget | None
     _possibleValues: list[str]
 
     def __init__(
